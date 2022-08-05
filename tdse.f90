@@ -1,23 +1,37 @@
 program tdse
-  !Variable initialization
-  integer :: n, i, j, info
-  double precision :: tau, h, t, hinv, sigmainv, psinorm
+
+  ! Local variables
+  integer :: n ! vector space dimension
+  integer :: i, j ! loop variables
+  integer :: info ! LAPACK return status
+  double precision :: tau, t ! time step, time variables
+  ! Local floating point intermediates
+  double precision :: h, hinv, sigmainv, psinorm
+  ! Local parameters
   double precision, parameter :: x0 = -0.8d0, sigma = 0.1d0
-  double precision, allocatable :: psi(:), psi0(:), work(:), omega(:)
+  ! External functino
+  double precision, external :: dznrm2
+  ! Allocatable arrays
+  double complex, allocatable :: psi(:), psi0(:)
+  double precision, allocatable :: work(:), omega(:)
   double precision, allocatable :: ham(:,:), tkin(:,:), vpot(:,:), u(:,:)
 
-  !Assign values to scalars
+  ! Variable initialization
+  ! Assign values to scalars
   read (*,*) n
   h = 2d0 / dble (n+1)
   
-  !Initialization
+  ! Initialization
   sigmainv = 1d0 / (sigma*sigma)
-  psinorm = 0d0
   psi0_loop: do i = 1,n
-     psi0(i) = exp(-(-1d0 + dble(i)*h - x0)**2 * signmainv)
-     psinorm = psinorm + psi0(i)**2 * h 
+     !psi0(i) = cmplx( exp(-(-1d0 + dble(i)*h - x0)**2 * signmainv)\0d0)
+     psi0(i) = cmplex(1d0,0d0) !debug
   end do psi0_loop
-
+  ! Normalize
+  psinorm = sqrt(h) * dznrm2(n,psi0,1)
+  print *, 'Psinorm^2 = ', psinorm*psinorm
+  print *, '2-h = ', 2d0 - h
+  call zdscal(n,cmplx(1d0/psinorm,0d0),psi0,1)
   
   !Allocation of variables
   allocate (psi(n),psi0(n),ham(n,n),tkin(n,n),vpot(n,n),u(n,n),work(3*n),omega(n))
