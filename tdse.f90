@@ -9,28 +9,23 @@ program tdse
   double precision :: h, hinv, sigmainv, psinorm
   ! Local parameters
   double precision, parameter :: x0 = -0.8d0, sigma = 0.1d0
-  ! External functino
-  double precision, external :: dznrm2
-  ! Allocatable arrays
-  double complex, allocatable :: psi(:), psi0(:)
-  double precision, allocatable :: work(:), omega(:)
-  double precision, allocatable :: ham(:,:), tkin(:,:), vpot(:,:), u(:,:)
 
-  ! Variable initialization
-  ! Assign values to scalars
+  !Variable initialization
+  !Assign values to scalars
   read (*,*) n
   h = 2d0 / dble (n+1)
   
   ! Initialization
   sigmainv = 1d0 / (sigma*sigma)
-  psi0_loop: do i = 1,n
-     !psi0(i) = cmplx( exp(-(-1d0 + dble(i)*h - x0)**2 * signmainv)\0d0)
-     psi0(i) = cmplex(1d0,0d0) !debug
+  psi0_loop: do i = 1, n
+     !     psi0(i) = cmplx(exp(-(-1d0 + dble(i)*h - x0)**2 *
+     !     signmainv),0d0)
+     psi0(i) = cmplx(1d0,0d0)  ! debug
   end do psi0_loop
   ! Normalize
-  psinorm = sqrt(h) * dznrm2(n,psi0,1)
+  psinorm = sqrt(h)*dznrm2(n,psi0,1)
   print *, 'Psinorm^2 = ', psinorm*psinorm
-  print *, '2-h = ', 2d0 - h
+  print *, '2-h     = ', 2d0-h
   call zdscal(n,cmplx(1d0/psinorm,0d0),psi0,1)
   
   !Allocation of variables
