@@ -30,7 +30,7 @@ program tdse
   end do psi0_loop
   ! Normalize
   psinorm = sqrt(h)*dznrm2(n,psi0,1)
-  print *, 'Psinorm = ', psinorm
+  print *, 'Psinorm^2 = ', psinorm*psinorm
   print *, '2-h     = ', 2d0-h
   call zdscal(n,cmplx(1d0/psinorm,0d0),psi0,1)
   
