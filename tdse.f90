@@ -20,6 +20,9 @@ program tdse
   !Assign values to scalars
   read (*,*) n
   h = 2d0 / dble (n+1)
+
+  !Allocation of variables
+  allocate (psi(n),psi0(n),ham(n,n),tkin(n,n),vpot(n,n),u(n,n),work(3*n),omega(n))
   
   !Initialization
   sigmainv = 1d0 / (sigma*sigma)
@@ -34,8 +37,6 @@ program tdse
   print *, '2-h     = ', 2d0-h
   call zdscal(n,cmplx(1d0/psinorm,0d0),psi0,1)
   
-  !Allocation of variables
-  allocate (psi(n),psi0(n),ham(n,n),tkin(n,n),vpot(n,n),u(n,n),work(3*n),omega(n))
   
   !Loop to set vpot to 0
   v_loop: do i = 1,n
