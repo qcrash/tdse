@@ -9,13 +9,19 @@ program tdse
   double precision :: h, hinv, sigmainv, psinorm
   ! Local parameters
   double precision, parameter :: x0 = -0.8d0, sigma = 0.1d0
+  ! External functions
+  double precision, external :: dznrm2
+  ! Allocatable arrays
+  double complex, allocatable :: psi(:), psi0(:) 
+  double precision, allocatable :: work(:), omega(:)
+  double precision, allocatable :: ham(:,:), tkin(:,:), vpot(:,:), u(:,:)
 
   !Variable initialization
   !Assign values to scalars
   read (*,*) n
   h = 2d0 / dble (n+1)
   
-  ! Initialization
+  !Initialization
   sigmainv = 1d0 / (sigma*sigma)
   psi0_loop: do i = 1, n
      !     psi0(i) = cmplx(exp(-(-1d0 + dble(i)*h - x0)**2 *
