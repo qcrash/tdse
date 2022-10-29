@@ -78,4 +78,22 @@ program tdse
   ! Deallocation of higher order tensors
   deallocate (psi,psi0,ham,tkin,vpot,u,work,omega)
 end program tdse
+
+double complex function scalar(n,psi1,psi2)
+  ! Calculate scalar product <psi1|psi2> on the grid
+  ! using trapezoidal rule and
+  ! zero boundary conditions
+
   
+  ! Input variables
+  integer, intent(in):: n
+  double complex, intent(in) :: psi1(n), psi2(n)
+
+  ! Local variables
+  
+  integer :: igrid
+
+
+  
+  
+end function scalar
