@@ -83,7 +83,6 @@ double complex function scalar(n,h,psi1,psi2)
   ! Calculate scalar product <psi1|psi2> on the grid
   ! using trapezoidal rule and
   ! zero boundary conditions
-
   
   ! Input variables
   integer, intent(in):: n
@@ -93,15 +92,13 @@ double complex function scalar(n,h,psi1,psi2)
   ! Local variables
   
   integer :: igrid
-  double complex :: tmp
 
-  tmp = (0d0,0d0)
+  scalar = (0d0,0d0)
   do igrid = 2, n-1
-     tmp = tmp + conjg(psi1(igrid))*psi2(igrd)
+     scalar = scalar + conjg(psi1(igrid))*psi2(igrd)
   end do
   ! First and last point
-  tmp = 0.5d0(conjg(psi1(1))*psi2(1)+ conjg(psi1(n))*psi2(n))
-  tmp = tmp*h
-  
+  scalar = 0.5d0*(conjg(psi1(1))*psi2(1)+conjg(psi1(n))*psi2(n))
+  scalar = scalar*h
   
 end function scalar
