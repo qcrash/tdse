@@ -95,7 +95,7 @@ double complex function scalar(n,h,psi1,psi2)
 
   scalar = (0d0,0d0)
   do igrid = 2, n-1
-     scalar = scalar + conjg(psi1(igrid))*psi2(igrd)
+     scalar = scalar + conjg(psi1(igrid))*psi2(igrid)
   end do
   ! First and last point
   scalar = 0.5d0*(conjg(psi1(1))*psi2(1)+conjg(psi1(n))*psi2(n))
