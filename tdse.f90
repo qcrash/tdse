@@ -9,13 +9,14 @@ program tdse
   double precision :: h, hinv, sigmainv, psinorm, imz0sq, x, xtemp, exptemp
   ! Local parameters
   double precision, parameter :: x0 = -0.8d0, p0 = 0.1d0, alpha = 1000d0, sigma = 0.1d0, pi = 4d0*atan(1d0)
+  integer, parameter :: idebug = 0
   ! External functions
   double precision, external :: dznrm2
   double complex, external :: scalar
   ! Allocatable arrays
   double complex, allocatable :: psi(:), psi0(:) 
   double precision, allocatable :: work(:), omega(:)
-  double precision, allocatable :: ham(:,:), tkin(:,:), vpot(:,:), u(:,:)
+  double precision, allocatable :: ham(:,:), tkin(:,:), vpot(:), u(:,:)
 
   ! Assign values to scalars
   read (*,*) n ! prompts user-defined input for number of grid points
@@ -23,7 +24,7 @@ program tdse
   !!!!! Before, h = 2d0/dble(n+1), but shouldn't h = 2d0/dble(n-1) since there are n-1 number of trapezoids? I changed h here, but you guys can revert it if h was correct before. ~Toby 10/25/22
 
   ! Allocation of higher order tensors
-  allocate (psi(n),psi0(n),ham(n,n),tkin(n,n),vpot(n,n),u(n,n),work(3*n),omega(n))
+  allocate (psi(n),psi0(n),ham(n,2),tkin(n,2),vpot(n),u(n,n),work(3*n),omega(n))
   
   ! Discretizing the initial wavepacket
   ! sigmainv = 1d0 / (sigma*sigma)
@@ -42,38 +43,33 @@ program tdse
 
   
   ! Normalizing the initial wavepacket
-  psinorm = sqrt(h)*dznrm2(n,psi0,1)
-  print *, 'Actual unscaled norm =',psinorm
-  print *, "norm from scalar = ", sqrt(scalar(n,h,psi0,psi0))
-
+  psinorm=dble(sqrt(scalar(n,h,psi0,psi0)))
   call zdscal(n,1d0/psinorm,psi0,1)
-  psinorm = sqrt(h)*dznrm2(n,psi0,1)
-  print *, 'Actual rescaled norm =',psinorm
-  print *, '2-h =',2d0-h !!!!! Can someone remind me why we care about 2-h again? T-T ~Toby 10/25/22
-  
+  if (idebug > 0) then
+     psinorm = dble(sqrt(scalar(n,h,psi0,psi0)))
+     print *, 'Actual rescaled norm =',psinorm
+     print *, '2-h =',2d0-h !!!!! Can someone remind me why we care about 2-h again? T-T ~Toby 10/25/22
+  end if
+
+  ! vpot is vector containing values of local potential
+  ! at grid points 
   ! Loop to set vpot to 0
-  v_loop: do i = 1,n
-     do j = 1,n
-        vpot(j,i) = 0d0 ! Read the elements of this matrix with j first since in this loop j is defined, then go to outer loop
-     end do
-  end do v_loop
+  vpot = 0d0 ! array initialization
 
   ! Loop to define tkin matrix
   hinv = 1d0 / (h*h)
-  tkin = 0d0
   t_loop_diagonal: do i = 1,n-1
-     tkin(i,i+1) = -0.5d0 * hinv
-     tkin(i,i) = 1d0 * hinv
-     tkin(i+1,i) = -0.5d0 * hinv
+     tkin(i,2) = -0.5d0*hinv
+     tkin(i,1) = hinv
   end do t_loop_diagonal
-  tkin(n,n) = 1d0 / h**2
-
+  tkin(n,1) = 1d0 / h**2
+  tkin(n,2) = 0d0
+  
   ! Loop to define ham matrix
   h_loop: do i = 1,n
-     do j = 1,n
-        ham(j,i) = tkin(j,i) + vpot(j,i)
+        ham(i,1) = tkin(i,1)+vpot(i)
+        ham(i,2) = tkin(i,2)
      end do
-     ! This is a matrix addition of the tkin and vpot matrices
   end do h_loop
 
   call ssyev('v','u',n,ham,n,omega,work,3*n,info)
