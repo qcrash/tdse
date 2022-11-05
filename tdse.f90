@@ -86,7 +86,7 @@ end program tdse
 double complex function scalar(n,h,psi1,psi2)
   ! Calculate scalar product <psi1|psi2> on the grid
   ! using trapezoidal rule and
-  ! zero boundary conditions
+  ! the boundary conditions
   
   ! Input variables
   integer, intent(in):: n
