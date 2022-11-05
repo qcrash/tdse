@@ -11,6 +11,7 @@ program tdse
   double precision, parameter :: x0 = -0.8d0, p0 = 0.1d0, alpha = 1000d0, sigma = 0.1d0, pi = 4d0*atan(1d0)
   ! External functions
   double precision, external :: dznrm2
+  double complex, external :: scalar
   ! Allocatable arrays
   double complex, allocatable :: psi(:), psi0(:) 
   double precision, allocatable :: work(:), omega(:)
@@ -38,10 +39,13 @@ program tdse
      psi0(i) = cmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
      ! psi0(i) = cmplx(1d0,0d0) ! debug wavepacket
   end do psi0_loop
+
   
   ! Normalizing the initial wavepacket
   psinorm = sqrt(h)*dznrm2(n,psi0,1)
   print *, 'Actual unscaled norm =',psinorm
+  print *, "norm from scalar = ", sqrt(scalar(n,h,psi0,psi0))
+
   call zdscal(n,1d0/psinorm,psi0,1)
   psinorm = sqrt(h)*dznrm2(n,psi0,1)
   print *, 'Actual rescaled norm =',psinorm
@@ -98,7 +102,8 @@ double complex function scalar(n,h,psi1,psi2)
      scalar = scalar + conjg(psi1(igrid))*psi2(igrid)
   end do
   ! First and last point
-  scalar = 0.5d0*(conjg(psi1(1))*psi2(1)+conjg(psi1(n))*psi2(n))
+  scalar = scalar+0.5d0*(conjg(psi1(1))*psi2(1)&
+       & +conjg(psi1(n))*psi2(n)) 
   scalar = scalar*h
   
 end function scalar
