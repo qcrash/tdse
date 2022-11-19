@@ -73,6 +73,8 @@ program tdse
      ham(2,i) = tkin(2,i)
   end do h_loop
 
+  omega = 0d0
+  statevec = 0d0
   call ssbev('v','l',n,1,ham,2,omega,statevec,n,work,info)
   if (info /=  0) then
      print *, "Info = ", info
