@@ -75,6 +75,7 @@ program tdse
 
   omega = 0d0
   statevec = 0d0
+  print *, ham
   call ssbev('v','l',n,1,ham,2,omega,statevec,n,work,info)
   if (info /=  0) then
      print *, "Info = ", info
