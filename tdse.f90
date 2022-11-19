@@ -69,9 +69,8 @@ program tdse
   
   ! Loop to define ham matrix
   h_loop: do i = 1,n
-        ham(i,1) = tkin(i,1)+vpot(i)
-        ham(i,2) = tkin(i,2)
-     end do
+     ham(i,1) = tkin(i,1)+vpot(i)
+     ham(i,2) = tkin(i,2)
   end do h_loop
 
   call ssbev('v','u',n,1,ham,n,omega,statevec,n,work,info)
