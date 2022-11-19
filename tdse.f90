@@ -25,7 +25,7 @@ program tdse
   !!!!! Before, h = 2d0/dble(n+1), but shouldn't h = 2d0/dble(n-1) since there are n-1 number of trapezoids? I changed h here, but you guys can revert it if h was correct before. ~Toby 10/25/22
 
   ! Allocation of higher order tensors
-  allocate (psi(n),psi0(n),ham(n,2),tkin(n,2),vpot(n),u(n,n),work(3*n)&
+  allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n),u(n,n),work(3*n)&
        &,omega(n),statevec(n,n))
   
   ! Discretizing the initial wavepacket
@@ -61,19 +61,19 @@ program tdse
   ! Loop to define tkin matrix
   hinv = 1d0 / (h*h)
   t_loop_diagonal: do i = 1,n-1
-     tkin(i,2) = -0.5d0*hinv
-     tkin(i,1) = hinv
+     tkin(1,i) = hinv ! diagonal
+     tkin(2,i) = -0.5d0*hinv ! offdiagonal
   end do t_loop_diagonal
-  tkin(n,1) = hinv
-  tkin(n,2) = 0d0
+  tkin(1,n) = hinv
+  tkin(2,n) = 0d0
   
   ! Loop to define ham matrix
   h_loop: do i = 1,n
-     ham(i,1) = tkin(i,1)+vpot(i)
-     ham(i,2) = tkin(i,2)
+     ham(1,i) = tkin(1,i)+vpot(i)
+     ham(2,i) = tkin(2,i)
   end do h_loop
 
-  call ssbev('v','u',n,1,ham,n,omega,statevec,n,work,info)
+  call ssbev('v','l',n,1,ham,n,omega,statevec,n,work,info)
   if (info /=  0) stop 'error in ssyev'
 
   print *, "Static Hamiltonian eigenvalues :", omega
