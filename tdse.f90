@@ -16,7 +16,8 @@ program tdse
   ! Allocatable arrays
   double complex, allocatable :: psi(:), psi0(:) 
   double precision, allocatable :: work(:), omega(:)
-  double precision, allocatable :: ham(:,:), tkin(:,:), vpot(:), u(:,:)
+  double precision, allocatable :: ham(:,:), tkin(:,:), &
+       & vpot(:), u(:,:), statevec(:,:) 
 
   ! Assign values to scalars
   read (*,*) n ! prompts user-defined input for number of grid points
@@ -24,7 +25,8 @@ program tdse
   !!!!! Before, h = 2d0/dble(n+1), but shouldn't h = 2d0/dble(n-1) since there are n-1 number of trapezoids? I changed h here, but you guys can revert it if h was correct before. ~Toby 10/25/22
 
   ! Allocation of higher order tensors
-  allocate (psi(n),psi0(n),ham(n,2),tkin(n,2),vpot(n),u(n,n),work(3*n),omega(n))
+  allocate (psi(n),psi0(n),ham(n,2),tkin(n,2),vpot(n),u(n,n),work(3*n)&
+       &,omega(n),statevec(n,n))
   
   ! Discretizing the initial wavepacket
   ! sigmainv = 1d0 / (sigma*sigma)
@@ -62,7 +64,7 @@ program tdse
      tkin(i,2) = -0.5d0*hinv
      tkin(i,1) = hinv
   end do t_loop_diagonal
-  tkin(n,1) = 1d0 / h**2
+  tkin(n,1) = hinv
   tkin(n,2) = 0d0
   
   ! Loop to define ham matrix
@@ -72,11 +74,13 @@ program tdse
      end do
   end do h_loop
 
-  call ssyev('v','u',n,ham,n,omega,work,3*n,info)
+  call ssbev('v','u',n,1,ham,n,omega,statevec,n,work,info)
   if (info /=  0) stop 'error in ssyev'
+
+  print *, "Static Hamiltonian eigenvalues :", omega
   
   ! Deallocation of higher order tensors
-  deallocate (psi,psi0,ham,tkin,vpot,u,work,omega)
+  deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec)
 end program tdse
 
 double complex function scalar(n,h,psi1,psi2)
