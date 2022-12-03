@@ -64,7 +64,8 @@ program tdse
   tkin(2,1) = 0d0
   t_loop_diagonal: do i = 2, n-1
      tkin(1,i) = hinv ! diagonal
-     tkin(2,i) = -0.5d0*hinv ! offdiagonal
+     tkin(2,i) = 0d0 ! debug
+!     tkin(2,i) = -0.5d0*hinv ! offdiagonal
   end do t_loop_diagonal
   tkin(1,n) = hinv
   tkin(2,n) = 0d0
