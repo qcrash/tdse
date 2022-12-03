@@ -60,7 +60,9 @@ program tdse
 
   ! Loop to define tkin matrix
   hinv = 1d0 / (h*h)
-  t_loop_diagonal: do i = 1,n-1
+  tkin(1,1) = 0d0
+  tkin(2,1) = 0d0
+  t_loop_diagonal: do i = 2, n-1
      tkin(1,i) = hinv ! diagonal
      tkin(2,i) = -0.5d0*hinv ! offdiagonal
   end do t_loop_diagonal
