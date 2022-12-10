@@ -60,15 +60,11 @@ program tdse
 
   ! Loop to define tkin matrix
   hinv = 1d0 / (h*h)
-  tkin(1,1) = hinv
-  tkin(2,1) = 0d0
-  t_loop_diagonal: do i = 2, n-1
+  t_loop_diagonal: do i = 1, n
      tkin(1,i) = hinv ! diagonal
-     tkin(2,i) = 0d0 ! debug
-!     tkin(2,i) = -0.5d0*hinv ! offdiagonal
+!     tkin(2,i) = 0d0 ! debug
+     tkin(2,i) = -0.5d0*hinv ! offdiagonal
   end do t_loop_diagonal
-  tkin(1,n) = hinv
-  tkin(2,n) = 0d0
   
   ! Loop to define ham matrix
   h_loop: do i = 1,n
@@ -79,13 +75,16 @@ program tdse
   omega = 0d0
   statevec = 0d0
   print *, ham
-  call ssbev('v','l',n,1,ham,2,omega,statevec,n,work,info)
+  call dsbev('v','l',n,1,ham,2,omega,statevec,n,work,info)
   if (info /=  0) then
      print *, "Info = ", info
      stop 'error in ssyev'
   end if
 
   print *, "Static Hamiltonian eigenvalues :", omega
+  do i=1,n
+     write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
+  end do
   
   ! Deallocation of higher order tensors
   deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec)
