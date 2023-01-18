@@ -9,24 +9,28 @@ program tdse
   double precision :: h, hinv, sigmainv, psinorm, imz0sq, x, xtemp, exptemp
   ! Local parameters
   double precision, parameter :: x0 = -0.8d0, p0 = 0.1d0, alpha = 1000d0, sigma = 0.1d0, pi = 4d0*atan(1d0)
-  integer, parameter :: idebug = 0
+  integer, parameter :: idebug = 1
   ! External functions
   double precision, external :: dznrm2
   double complex, external :: scalar
   ! Allocatable arrays
-  double complex, allocatable :: psi(:), psi0(:) 
+  double complex, allocatable :: psi(:), psi0(:), transmat(:,:)
   double precision, allocatable :: work(:), omega(:)
   double precision, allocatable :: ham(:,:), tkin(:,:), &
-       & vpot(:), u(:,:), statevec(:,:) 
+       & vpot(:), u(:,:), statevec(:,:)
 
   ! Assign values to scalars
   read (*,*) n ! prompts user-defined input for number of grid points
   h = 2d0/dble(n-1)
-  !!!!! Before, h = 2d0/dble(n+1), but shouldn't h = 2d0/dble(n-1) since there are n-1 number of trapezoids? I changed h here, but you guys can revert it if h was correct before. ~Toby 10/25/22
+!!!!! Before, h = 2d0/dble(n+1), but shouldn't h = 2d0/dble(n-1) since there are n-1 number of trapezoids? I changed h here, but you guys can revert it if h was correct before. ~Toby 10/25/22
+
+  ! Assign initial values to time variables
+  t = 0d0
+  tau = 1d0
 
   ! Allocation of higher order tensors
   allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n),u(n,n),&
-       & work(3*n),omega(n),statevec(n,n))
+       & work(3*n),omega(n),statevec(n,n),transmat(n,n))
   
   ! Discretizing the initial wavepacket
   ! sigmainv = 1d0 / (sigma*sigma)
@@ -74,23 +78,55 @@ program tdse
 
   omega = 0d0
   statevec = 0d0
-  print *, ham
   call dsbev('v','l',n,1,ham,2,omega,statevec,n,work,info)
   if (info /=  0) then
      print *, "Info = ", info
      stop 'error in ssyev'
   end if
 
-  print *, "Static Hamiltonian eigenvalues :", omega
-  do i=1,n
-     write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
-  end do
+!!$  print *, "Static Hamiltonian eigenvalues :", omega
+!!$  do i=1,n
+!!$     write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
+!!$  end do
 
   ! Transform wavefunction from position to energy eigenbasis
-  call zgemv('t',n,n,cmplx(1d0,0d0),cmplx(statevec,0d0),n,psi0,1,cmplx(0d0,0d0),psi,1)
+  do i = 1, n
+     do j = 1, n
+        transmat(i,j) = cmplx(statevec(i,j),0d0)
+     end do
+  end do
+  
+  ! call zgemv('t',n,n,cmplx(1d0,0d0),transmat,n,psi0,1,cmplx(0d0,0d0),psi,1)
+  do i = 1, n
+     psi(i) = cmplx(0d0,0d0)
+     do j = 1, n
+        psi(i) = psi(i)+transmat(j,i)*psi0(j)
+     end do
+  end do
+  
+  print *, 'Norm in energy basis ', sqrt(dble(scalar(n,h,psi,psi)))
+  
+  ! Multiplying wavefunction by a diagonal time propagator
+  do i = 1, n
+     psi(i) = exp(-cmplx(0d0,1d0)*omega(i)*tau)*psi(i)
+  end do
+
+  print *, 'Norm after one time step in energy basis ', sqrt(dble(scalar(n,h,psi,psi)))
+  
+  ! Transform wavefunction back to position basis
+  ! call zgemv('n',n,n,cmplx(1d0,0d0),transmat,n,psi,1,cmplx(0d0,0d0),psi0,1)
+  do i = 1, n
+     psi(i) = cmplx(0d0,0d0)
+     do j = 1, n
+        psi(i) = psi(i)+transmat(j,i)*psi0(j)
+     end do
+  end do
+  
+
+  print *, 'Norm after one time step in position basis ', sqrt(dble(scalar(n,h,psi0,psi0)))
   
   ! Deallocation of higher order tensors
-  deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec)
+  deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec,transmat)
 end program tdse
 
 double complex function scalar(n,h,psi1,psi2)
