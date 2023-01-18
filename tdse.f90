@@ -85,6 +85,9 @@ program tdse
   do i=1,n
      write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
   end do
+
+  ! Transform wavefunction from position to energy eigenbasis
+  call zgemv('t',n,n,cmplx(1d0,0d0),cmplx(statevec,0d0),n,psi0,1,cmplx(0d0,0d0),psi,1)
   
   ! Deallocation of higher order tensors
   deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec)
