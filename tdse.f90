@@ -12,9 +12,10 @@ program tdse
   integer, parameter :: idebug = 1
   ! External functions
   double precision, external :: dznrm2
+  double complex :: temp
   double complex, external :: scalar
   ! Allocatable arrays
-  double complex, allocatable :: psi(:), psi0(:), transmat(:,:)
+  double complex, allocatable :: psi(:), psi0(:), transmat(:,:), psi_tilda(:) ! psi_norm normalize
   double precision, allocatable :: work(:), omega(:)
   double precision, allocatable :: ham(:,:), tkin(:,:), &
        & vpot(:), u(:,:), statevec(:,:)
@@ -30,7 +31,7 @@ program tdse
 
   ! Allocation of higher order tensors
   allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n),u(n,n),&
-       & work(3*n),omega(n),statevec(n,n),transmat(n,n))
+       & work(3*n),omega(n),statevec(n,n),transmat(n,n), psi_tilda(n))
   
   ! Discretizing the initial wavepacket
   ! sigmainv = 1d0 / (sigma*sigma)
@@ -43,10 +44,9 @@ program tdse
      x = dble(i-1)*h - 1d0
      xtemp = x+x0
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
-     psi0(i) = cmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
-     ! psi0(i) = cmplx(1d0,0d0) ! debug wavepacket
+     psi0(i) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
+     ! psi0(i) = dcmplx(1d0,0d0) ! debug wavepacket
   end do psi0_loop
-
   
   ! Normalizing the initial wavepacket
   psinorm=dble(sqrt(scalar(n,h,psi0,psi0)))
@@ -54,8 +54,17 @@ program tdse
   if (idebug > 0) then
      psinorm = dble(sqrt(scalar(n,h,psi0,psi0)))
      print *, 'Actual rescaled norm =',psinorm
-     print *, '2-h =',2d0-h !!!!! Can someone remind me why we care about 2-h again? T-T ~Toby 10/25/22
+     print *, '2-h =',2d0-h
   end if
+
+  ! Transform to orthonormal basis
+  temp = dcmplx(sqrt(h),0d0)
+  do i = 1,n
+     psi_tilda(i) = psi0(i)*temp
+  end do
+  psi_tilda(1) = psi_tilda(1)/dcmplx(sqrt(2d0),0d0)
+  psi_tilda(n) = psi_tilda(n)/dcmplx(sqrt(2d0),0d0)
+  print *, 'Norm of the actual size: ', dznrm2(n,psi_tilda,1)
 
   ! vpot is vector containing values of local potential
   ! at grid points 
@@ -92,41 +101,40 @@ program tdse
   ! Transform wavefunction from position to energy eigenbasis
   do i = 1, n
      do j = 1, n
-        transmat(i,j) = cmplx(statevec(i,j),0d0)
+        transmat(i,j) = dcmplx(statevec(i,j),0d0)
      end do
   end do
   
-  ! call zgemv('t',n,n,cmplx(1d0,0d0),transmat,n,psi0,1,cmplx(0d0,0d0),psi,1)
+  ! call zgemv('t',n,n,dcmplx(1d0,0d0),transmat,n,psi0,1,dcmplx(0d0,0d0),psi,1)
   do i = 1, n
-     psi(i) = cmplx(0d0,0d0)
+     psi(i) = dcmplx(0d0,0d0)
      do j = 1, n
-        psi(i) = psi(i)+transmat(j,i)*psi0(j)
+        psi(i) = psi(i)+transmat(j,i)*psi_tilda(j)
      end do
   end do
   
-  print *, 'Norm in energy basis ', sqrt(dble(scalar(n,h,psi,psi)))
+  print *, 'Norm in energy basis ', dznrm2(n,psi,1)
   
   ! Multiplying wavefunction by a diagonal time propagator
   do i = 1, n
-     psi(i) = exp(-cmplx(0d0,1d0)*omega(i)*tau)*psi(i)
+     psi(i) = exp(-dcmplx(0d0,1d0)*omega(i)*tau)*psi(i)
   end do
 
-  print *, 'Norm after one time step in energy basis ', sqrt(dble(scalar(n,h,psi,psi)))
+  print *, 'Norm after one time step in energy basis ', dznrm2(n,psi,1)
   
   ! Transform wavefunction back to position basis
-  ! call zgemv('n',n,n,cmplx(1d0,0d0),transmat,n,psi,1,cmplx(0d0,0d0),psi0,1)
+  ! call zgemv('n',n,n,dcmplx(1d0,0d0),transmat,n,psi,1,dcmplx(0d0,0d0),psi0,1)
   do i = 1, n
-     psi(i) = cmplx(0d0,0d0)
+     psi_tilda(i) = dcmplx(0d0,0d0)
      do j = 1, n
-        psi(i) = psi(i)+transmat(j,i)*psi0(j)
+        psi_tilda(i) = psi_tilda(i)+transmat(j,i)*psi(j)
      end do
   end do
   
-
-  print *, 'Norm after one time step in position basis ', sqrt(dble(scalar(n,h,psi0,psi0)))
+  print *, 'Norm after one time step in position basis ', dznrm2(n,psi,1)
   
   ! Deallocation of higher order tensors
-  deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec,transmat)
+  deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec,transmat, psi_tilda)
 end program tdse
 
 double complex function scalar(n,h,psi1,psi2)
