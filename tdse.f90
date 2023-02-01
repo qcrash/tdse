@@ -13,6 +13,7 @@ program tdse
        & vpot(:), u(:,:), statevec(:,:), work(:), omega(:)
   double precision, external :: dznrm2
   double complex, external :: scalar
+  double precision, external :: xval, variance
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -33,7 +34,7 @@ program tdse
   psi0(1) = 0d0
   psi0(n) = 0d0 ! boundary conditions
   psi0_loop: do i = 2, n-1
-     xtemp = dble(i-1)*h - 1d0 + x0
+     xtemp = dble(i-1)*h - 1d0 - x0
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
      psi0(i) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
      ! psi0(i) = dcmplx(1d0,0d0) ! debug wavepacket
@@ -48,6 +49,9 @@ program tdse
      print *, 'Normalized wavepacket norm =',psinorm
   end if
 
+  !! Testing initial position expectation value
+  print *, 'Initial wavepacket position =',xval(n,h,psi0)
+  
   !! Transforming to real orthonormal basis
   temp = dcmplx(sqrt(h),0d0)
   do i = 1,n
@@ -71,7 +75,12 @@ program tdse
      ham(1,i) = tkin(1,i)+vpot(i)
      ham(2,i) = tkin(2,i)
   end do h_loop
-
+  call dscal(2*n,1d0/h,ham,1)
+  ham(1,1) = 2d0*ham(1,1)
+  ham(2,1) = sqrt(2d0)*ham(2,1)
+  ham(1,n) = 2d0*ham(1,n)
+  ham(2,n) = sqrt(2d0)*ham(2,n)
+  
   !! Diagonalizing Hamiltonian operator
   omega = 0d0
   statevec = 0d0
@@ -147,3 +156,23 @@ double complex function scalar(n,h,psi1,psi2)
   end do 
   scalar = scalar*h
 end function scalar
+
+double precision function xval(n,h,psi)
+  integer, intent(in):: n
+  double precision, intent(in) :: h
+  double complex, intent(in) :: psi(n)
+  integer :: igrid
+
+  xval = 0.5d0*(-conjg(psi(1))*psi(1) &
+       & + conjg(psi(n))*psi(n)) ! First and last point
+  do igrid = 2, n-1
+     xval = xval + conjg(psi(igrid))*psi(igrid)*(dble(igrid-1)*h - 1d0)
+  end do 
+  xval = xval*h
+end function xval
+
+! double precision function variance(n,h,psi)
+!   integer, intent(in):: n
+!   double precision, intent(in) :: h
+!   double complex, intent(in) :: psi
+! end function variance
