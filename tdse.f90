@@ -1,4 +1,5 @@
 program tdse
+  implicit none
   !! Declaring variables
   integer, parameter :: idebug = 1
   integer :: info, i, j, n ! LAPACK status, loop vars, vector space dim
@@ -10,10 +11,10 @@ program tdse
   double complex, allocatable :: psi(:), psi0(:), transmat(:,:), &
        & psitilda(:) ! psitilda is wavefunction in real orthonormal basis
   double precision, allocatable :: ham(:,:), tkin(:,:), &
-       & vpot(:), u(:,:), statevec(:,:), work(:), omega(:)
+       & vpot(:), statevec(:,:), work(:), omega(:)
   double precision, external :: dznrm2
   double complex, external :: scalar
-  double precision, external :: xval, variance
+  double precision, external :: xval, variance, pval
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -26,7 +27,7 @@ program tdse
   tau = 1d0
 
   !! Allocating higher order tensors
-  allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n),u(n,n), &
+  allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n), &
        & work(3*n),omega(n),statevec(n,n),transmat(n,n),psitilda(n))
   
   !! Discretizing initial wavepacket
@@ -49,8 +50,10 @@ program tdse
      print *, 'Normalized wavepacket norm =',psinorm
   end if
 
-  !! Testing initial position expectation value
-  print *, 'Initial wavepacket position =',xval(n,h,psi0)
+  !! Testing initial position and variance
+  print *, 'Initial wavepacket position =',xval(n,h,psi0) ! intial position expectation value
+  print *, 'Initial wavepacket position uncertainty =',variance(n,h,psi0) ! initial position uncertainty
+  print *, 'Initial wavepacket momentum =',pval(n,h,psi0) ! initial momentum expectation value
   
   !! Transforming to real orthonormal basis
   temp = dcmplx(sqrt(h),0d0)
@@ -134,7 +137,7 @@ program tdse
   end if
   
   !! Deallocation of higher order tensors
-  deallocate (psi,psi0,ham,tkin,vpot,u,work,omega,statevec,transmat,psitilda)
+  deallocate (psi,psi0,ham,tkin,vpot,work,omega,statevec,transmat,psitilda)
 end program tdse
 
 double complex function scalar(n,h,psi1,psi2)
@@ -171,8 +174,33 @@ double precision function xval(n,h,psi)
   xval = xval*h
 end function xval
 
-! double precision function variance(n,h,psi)
-!   integer, intent(in):: n
-!   double precision, intent(in) :: h
-!   double complex, intent(in) :: psi
-! end function variance
+double precision function variance(n,h,psi)
+  integer, intent(in):: n
+  double precision, intent(in) :: h
+  double complex, intent(in) :: psi(n)
+  double precision :: tmp
+  double precision, external :: xval
+  
+  ! var^2 = exp[(x-exp(x))^2]
+  tmp = xval(n,h,psi)
+  variance = conjg(psi(1))*psi(1)*(-0.5d0 - tmp)**2 &
+       & + conjg(psi(n))*psi(n)*(0.5d0 - tmp)**2 ! First and last point
+  do igrid = 2, n-1
+     variance = variance + conjg(psi(igrid))*psi(igrid)*(dble(igrid-1)*h - 1d0 - tmp)**2
+  end do
+  variance = sqrt(variance*h)
+end function variance
+
+double precision function pval(n,h,psi)
+  integer, intent(in):: n
+  double precision, intent(in) :: h
+  double complex, intent(in) :: psi(n)
+  integer :: igrid
+
+  pval = 0.5d0*(aimag(conjg(psi(1))*psi(2))/(2d0*h) &
+       & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h)) ! First and last point
+  do igrid = 2, n-1
+     pval = pval + aimag(conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1)))/(2d0*h)
+  end do 
+  pval = pval*h
+end function pval
