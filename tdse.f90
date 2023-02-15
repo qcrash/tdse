@@ -14,7 +14,7 @@ program tdse
        & vpot(:), statevec(:,:), work(:), omega(:)
   double precision, external :: dznrm2
   double complex, external :: scalar
-  double precision, external :: xval, variance, pval
+  double precision, external :: xval, variance, pval, pvar
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -54,7 +54,9 @@ program tdse
   print *, 'Initial wavepacket position =',xval(n,h,psi0) ! intial position expectation value
   print *, 'Initial wavepacket position uncertainty =',variance(n,h,psi0) ! initial position uncertainty
   print *, 'Initial wavepacket momentum =',pval(n,h,psi0) ! initial momentum expectation value
-  
+  print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0) ! initial momentum uncertainty
+  print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h,psi0) ! must be greater than 1/2
+   
   !! Transforming to real orthonormal basis
   temp = dcmplx(sqrt(h),0d0)
   do i = 1,n
@@ -146,6 +148,7 @@ double complex function scalar(n,h,psi1,psi2)
   ! <psi1|psi2> = int(psi1*(x)psi2(x)dx)
   
   !! Defining parameters and local variables
+  implicit none
   integer, intent(in):: n
   double precision, intent(in) :: h
   double complex, intent(in) :: psi1(n), psi2(n)
@@ -161,6 +164,7 @@ double complex function scalar(n,h,psi1,psi2)
 end function scalar
 
 double precision function xval(n,h,psi)
+  implicit none
   integer, intent(in):: n
   double precision, intent(in) :: h
   double complex, intent(in) :: psi(n)
@@ -175,13 +179,15 @@ double precision function xval(n,h,psi)
 end function xval
 
 double precision function variance(n,h,psi)
+  implicit none
   integer, intent(in):: n
   double precision, intent(in) :: h
   double complex, intent(in) :: psi(n)
   double precision :: tmp
   double precision, external :: xval
+  integer :: igrid
   
-  ! var^2 = exp[(x-exp(x))^2]
+  ! var^2 = expt[(x-expt(x))^2]
   tmp = xval(n,h,psi)
   variance = conjg(psi(1))*psi(1)*(-0.5d0 - tmp)**2 &
        & + conjg(psi(n))*psi(n)*(0.5d0 - tmp)**2 ! First and last point
@@ -192,6 +198,7 @@ double precision function variance(n,h,psi)
 end function variance
 
 double precision function pval(n,h,psi)
+  implicit none
   integer, intent(in):: n
   double precision, intent(in) :: h
   double complex, intent(in) :: psi(n)
@@ -200,7 +207,26 @@ double precision function pval(n,h,psi)
   pval = 0.5d0*(aimag(conjg(psi(1))*psi(2))/(2d0*h) &
        & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h)) ! First and last point
   do igrid = 2, n-1
-     pval = pval + aimag(conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1)))/(2d0*h)
+     pval = pval + (psi(igrid+1)-psi(igrid-1))/(2d0*h)
   end do 
   pval = pval*h
 end function pval
+
+double precision function pvar(n,h,psi)
+  implicit none
+  integer, intent(in):: n
+  double precision, intent(in) :: h
+  double complex, intent(in) :: psi(n)
+  double precision :: tmp
+  double precision, external :: pval
+  integer :: igrid
+  
+  ! var^2 = expt[(p-expt(p))^2] = (abs(p*psi - expt(p)*psi))^2
+  tmp = pval(n,h,psi)
+  pvar = 0.5d0*((abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
+       & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2) ! First and last point
+  do igrid = 2, n-1
+     pvar = pvar + (abs(((psi(igrid+1)-psi(igrid-1)))/(2d0*h) - tmp*psi(igrid)))**2
+  end do
+  pvar = sqrt(pvar*h)
+end function pvar
