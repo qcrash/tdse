@@ -233,7 +233,7 @@ double precision function pval(n,h,psi)
   pval = 0.5d0*(aimag(conjg(psi(1))*psi(2))/(2d0*h) &
        & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h)) ! First and last point
   do igrid = 2, n-1
-     pval = pval + (psi(igrid+1)-psi(igrid-1))/(2d0*h)
+     pval = pval + aimag(conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1))/(2d0*h))
   end do 
   pval = pval*h
 end function pval
