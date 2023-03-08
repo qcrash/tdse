@@ -82,11 +82,11 @@ program tdse
      ham(1,i) = tkin(1,i)+vpot(i)
      ham(2,i) = tkin(2,i)
   end do h_loop
-  call dscal(2*n,1d0/h,ham,1)
-  ham(1,1) = 2d0*ham(1,1)
-  ham(2,1) = sqrt(2d0)*ham(2,1)
-  ham(1,n) = 2d0*ham(1,n)
-  ham(2,n) = sqrt(2d0)*ham(2,n)
+  ! call dscal(2*n,1d0/h,ham,1)
+  ! ham(1,1) = 2d0*ham(1,1)
+  ! ham(2,1) = sqrt(2d0)*ham(2,1)
+  ! ham(1,n) = 2d0*ham(1,n)
+  ! ham(2,n) = sqrt(2d0)*ham(2,n)
   
   !! Diagonalizing Hamiltonian operator
   omega = 0d0
@@ -121,6 +121,12 @@ program tdse
   end if
 
   print *
+  temp = 0d0
+  do i = 1, n
+     print *, omega(i)
+     temp = temp + omega(i)*abs(psitilda(i))**2
+  end do
+  print *, 'energy expectation value in the momentum basis', temp
   
   !! Propagating momentum wavefunction by one time step
   do itsteps = 1, ntsteps
