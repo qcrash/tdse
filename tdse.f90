@@ -26,7 +26,7 @@ program tdse
   print *, 'Number of time steps ='
   read (*,*) ntsteps
   t = 0d0
-  tau = 0.1d0
+  tau = 0.0001d0
 
   !! Allocating higher order tensors
   allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n), &
@@ -120,22 +120,30 @@ program tdse
      print *, 'Norm in energy basis =', dznrm2(n,psi,1)
   end if
 
+  !! Computing energy expectation value
   print *
   temp = 0d0
   do i = 1, n
-     print *, omega(i)
-     temp = temp + omega(i)*abs(psitilda(i))**2
+     temp = temp + omega(i)*abs(psi(i))**2
   end do
-  print *, 'energy expectation value in the momentum basis', temp
+  print *, 'energy expectation value in the momentum basis before propagation =', temp
   
   !! Propagating momentum wavefunction by one time step
   do itsteps = 1, ntsteps
      do i = 1, n
-        psi(i) = exp(-dcmplx(0d0,1d0)*omega(i)*tau)*psi(i) ! propagation
+        print *, 'Probability amplitude =', abs(psi(i))**2
+        psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
      end do
      if (idebug > 0) then
         print *, 'Norm after time step in energy basis =', dznrm2(n,psi,1)
      end if
+     
+     !! Computing energy expectation value
+     temp = 0d0
+     do i = 1, n
+        temp = temp + omega(i)*abs(psi(i))**2
+     end do
+     print *, 'energy expectation value in the momentum basis after propagation', temp
 
      !! Transforming wavefunction back to real orthonormal basis
      do i = 1, n
