@@ -5,7 +5,7 @@ program tdse
   integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
   double precision :: h, psinorm, tau, t ! grid spacing, time step, time param
   double precision :: hinv, imz0sq, xtemp, exptemp ! temp vars
-  double precision, parameter :: x0 = -0.8d0, p0 = 0.1d0, alpha = 1000d0, &
+  double precision, parameter :: x0 = -0.8d0, p0 = 0.3d0, alpha = 1000d0, &
        & pi = 4d0*atan(1d0)
   double complex :: temp
   double complex, allocatable :: psi(:), psi0(:), transmat(:,:), &
@@ -25,8 +25,9 @@ program tdse
   !! Initializing time variables
   print *, 'Number of time steps ='
   read (*,*) ntsteps
+  print *, 'Size of time step ='
+  read (*,*) tau
   t = 0d0
-  tau = 0.0001d0
 
   !! Allocating higher order tensors
   allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n), &
@@ -59,16 +60,16 @@ program tdse
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0) ! initial momentum uncertainty
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h,psi0) ! must be greater than 1/2
    
-  !! Transforming to real orthonormal basis
-  temp = dcmplx(sqrt(h),0d0)
-  do i = 1,n
-     psitilda(i) = psi0(i)*temp ! rescale to make basis orthonormal
-  end do
-  psitilda(1) = psitilda(1)/dcmplx(sqrt(2d0),0d0)
-  psitilda(n) = psitilda(n)/dcmplx(sqrt(2d0),0d0)
-  if (idebug > 0) then
-     print *, 'Norm in real orthonormal basis =', dznrm2(n,psitilda,1)
-  end if
+!!$  !! Transforming to real orthonormal basis
+!!$  temp = dcmplx(sqrt(h),0d0)
+!!$  do i = 1,n
+!!$     psitilda(i) = psi0(i)*temp ! rescale to make basis orthonormal
+!!$  end do
+!!$  psitilda(1) = psitilda(1)/dcmplx(sqrt(2d0),0d0)
+!!$  psitilda(n) = psitilda(n)/dcmplx(sqrt(2d0),0d0)
+!!$  if (idebug > 0) then
+!!$     print *, 'Norm in real orthonormal basis =', dznrm2(n,psitilda,1)
+!!$  end if
   
   !! Defining Hamiltonian operator
   vpot = 0d0 ! local potential at grid points
@@ -112,7 +113,7 @@ program tdse
   do i = 1, n
      psi(i) = dcmplx(0d0,0d0)
      do j = 1, n
-        psi(i) = psi(i)+transmat(j,i)*psitilda(j) ! transformation
+        psi(i) = psi(i)+transmat(j,i)*psi0(j) ! transformation
      end do
   end do
   ! call zgemv('t',n,n,dcmplx(1d0,0d0),transmat,n,psi0,1,dcmplx(0d0,0d0),psi,1)
@@ -120,53 +121,53 @@ program tdse
      print *, 'Norm in energy basis =', dznrm2(n,psi,1)
   end if
 
-  !! Computing energy expectation value
-  print *
-  temp = 0d0
-  do i = 1, n
-     temp = temp + omega(i)*abs(psi(i))**2
-  end do
-  print *, 'energy expectation value in the momentum basis before propagation =', temp
+!!$  !! Computing energy expectation value
+!!$  print *
+!!$  temp = 0d0
+!!$  do i = 1, n
+!!$     temp = temp + omega(i)*abs(psi(i))**2
+!!$  end do
+!!$  print *, 'energy expectation value in the momentum basis before propagation =', temp
   
   !! Propagating momentum wavefunction by one time step
   do itsteps = 1, ntsteps
      do i = 1, n
-        print *, 'Probability amplitude =', abs(psi(i))**2
+       ! print *, 'Probability amplitude =', abs(psi(i))**2
         psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
      end do
-     if (idebug > 0) then
-        print *, 'Norm after time step in energy basis =', dznrm2(n,psi,1)
-     end if
-     
-     !! Computing energy expectation value
-     temp = 0d0
-     do i = 1, n
-        temp = temp + omega(i)*abs(psi(i))**2
-     end do
-     print *, 'energy expectation value in the momentum basis after propagation', temp
+!!$     if (idebug > 0) then
+!!$        print *, 'Norm after time step in energy basis =', dznrm2(n,psi,1)
+!!$     end if
+!!$     
+!!$     !! Computing energy expectation value
+!!$     temp = 0d0
+!!$     do i = 1, n
+!!$        temp = temp + omega(i)*abs(psi(i))**2
+!!$     end do
+!!$     print *, 'energy expectation value in the momentum basis after propagation', temp
 
-     !! Transforming wavefunction back to real orthonormal basis
+     !! Transforming wavefunction back to grid basis
      do i = 1, n
-        psitilda(i) = dcmplx(0d0,0d0)
+        psi0(i) = dcmplx(0d0,0d0)
         do j = 1, n
-           psitilda(i) = psitilda(i)+transmat(i,j)*psi(j)
+           psi0(i) = psi0(i)+transmat(i,j)*psi(j)
         end do
      end do
      ! call zgemv('n',n,n,dcmplx(1d0,0d0),transmat,n,psi,1,dcmplx(0d0,0d0),psi0,1)
      if (idebug > 0) then
-        print *, 'Norm after time step in real orthonormal basis =', dznrm2(n,psitilda,1)
+        print *, 'Norm after time step in grid basis =', scalar(n,h,psi0,psi0)
      end if
 
-     !! Transforming back to grid basis
-     temp = dcmplx(1d0/sqrt(h),0d0)
-     do i = 1,n
-        psi0(i) = psitilda(i)*temp ! rescale to make basis orthonormal
-     end do
-     psi0(1) = psi0(1)*dcmplx(sqrt(2d0),0d0)
-     psi0(n) = psi0(n)*dcmplx(sqrt(2d0),0d0)
-     if (idebug > 0) then
-        print *, 'Norm in grid basis =', dble(sqrt(scalar(n,h,psi0,psi0)))
-     end if
+!!$     !! Transforming back to grid basis
+!!$     temp = dcmplx(1d0/sqrt(h),0d0)
+!!$     do i = 1,n
+!!$        psi0(i) = psitilda(i)*temp ! rescale to make basis orthonormal
+!!$     end do
+!!$     psi0(1) = psi0(1)*dcmplx(sqrt(2d0),0d0)
+!!$     psi0(n) = psi0(n)*dcmplx(sqrt(2d0),0d0)
+!!$     if (idebug > 0) then
+!!$        print *, 'Norm in grid basis =', dble(sqrt(scalar(n,h,psi0,psi0)))
+!!$     end if
 
      !! Testing initial position and variance
      print *, 'Absolute time =', t + tau*itsteps ! current time
