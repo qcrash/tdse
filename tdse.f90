@@ -15,6 +15,7 @@ program tdse
   double precision, external :: dznrm2
   double complex, external :: scalar
   double precision, external :: xval, variance, pval, pvar
+  double complex, allocatable :: chi(:)
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -31,7 +32,7 @@ program tdse
 
   !! Allocating higher order tensors
   allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n), &
-       & work(3*n),omega(n),statevec(n,n),transmat(n,n),psitilda(n))
+       & work(3*n),omega(n),statevec(n,n),transmat(n,n),psitilda(n), chi(n))
   
   !! Discretizing initial wavepacket
   imz0sq = 0.25d0*(p0/alpha)**2
@@ -109,17 +110,7 @@ program tdse
   !    write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
   ! end do
 
-  !! Transforming wavefunction to energy eigenbasis
-  do i = 1, n
-     psi(i) = dcmplx(0d0,0d0)
-     do j = 1, n
-        psi(i) = psi(i)+transmat(j,i)*psi0(j) ! transformation
-     end do
-  end do
-  ! call zgemv('t',n,n,dcmplx(1d0,0d0),transmat,n,psi0,1,dcmplx(0d0,0d0),psi,1)
-  if (idebug > 0) then
-     print *, 'Norm in energy basis =', dznrm2(n,psi,1)
-  end if
+  
 
 !!$  !! Computing energy expectation value
 !!$  print *
@@ -130,7 +121,12 @@ program tdse
 !!$  print *, 'energy expectation value in the momentum basis before propagation =', temp
   
   !! Propagating momentum wavefunction by one time step
+
+  
   do itsteps = 1, ntsteps
+     call propagate(n, h, psi0, tau, chi)
+
+     
      do i = 1, n
        ! print *, 'Probability amplitude =', abs(psi(i))**2
         psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
@@ -180,7 +176,7 @@ program tdse
   end do
   
   !! Deallocation of higher order tensors
-  deallocate (psi,psi0,ham,tkin,vpot,work,omega,statevec,transmat,psitilda)
+  deallocate (psi,psi0,ham,tkin,vpot,work,omega,statevec,transmat,psitilda,chi)
 end program tdse
 
 double complex function scalar(n,h,psi1,psi2)
@@ -271,3 +267,65 @@ double precision function pvar(n,h,psi)
   end do
   pvar = sqrt(pvar*h)
 end function pvar
+
+!------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+subroutine propagate(n, h, psi, tau, chi)
+  !------------------------------------------------------------------------------
+  !------------------------------------------------------------------------------
+  !
+  !------------------------------------------------------------------------------
+  ! Description: e^(-iHt)=1-iHt propagate the wavefunction at time t on psi
+  ! on t + delta_t
+  !------------------------------------------------------------------------------
+  ! (What is the purpose of this subroutine? State the theory and the
+  ! algorithm used in a few sentences. Refer to literature or
+  ! documentation for detailed derivations, proofs, or pseudocode.
+  !------------------------------------------------------------------------------
+  !
+  implicit none
+  !------------------------------------------------------------------------------
+  ! Modules and Global Variables
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  ! External Functions
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  ! Input Parameters
+  !------------------------------------------------------------------------------
+  integer, intent(in):: n
+  double precision, intent(in):: h, tau
+  double complex, intent(in):: psi(n)
+  !------------------------------------------------------------------------------
+  ! Output Parameters
+  !------------------------------------------------------------------------------
+  double complex, intent(out):: chi(n)
+  !------------------------------------------------------------------------------
+  ! Input/Output Parameters
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  !  Local Variables
+  !------------------------------------------------------------------------------
+  integer :: igrid
+  !------------------------------------------------------------------------------
+  !  Local Constants 
+  !------------------------------------------------------------------------------
+
+
+
+  ! second derivative loop
+  do igrid = 2, n-1
+     chi(igrid) = -psi(igrid-1) + 2d0*psi(igrid) - psi(igrid+1)
+  end do
+
+  ! first and last points special case
+  chi(1) = 2d0*psi(1) - psi(2)
+  chi(n) = -psi(n-1) + 2d0*psi(n)
+
+  ! combine psi: (1-iHt)*psi = psi - iHpsit
+  chi = psi - dcmplx(0d0,tau/(2d0*h*h))*chi
+  
+end subroutine
