@@ -79,9 +79,13 @@ program tdse
   !    write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
   ! end do
 
+  psi = psi0 ! save initial wavefunction
+
   !! Propagating wavefunction by one time step  
   do itsteps = 1, ntsteps
-     call propagate(n, h, psi0, tau, chi)
+     call propagate(n, h, psi, tau, chi)
+     psi = chi ! use result  as new input in next iteration
+
      
 !     do i = 1, n
 !       print *, 'Probability amplitude =', abs(psi(i))**2
@@ -90,11 +94,17 @@ program tdse
 
      !! Testing initial position and variance
      print *, 'Absolute time =', t + tau*itsteps ! current time
-     print *, 'Wavepacket position =',xval(n,h,psi0) ! intial position expectation value
-     print *, 'Wavepacket position uncertainty =',variance(n,h,psi0) ! initial position uncertainty
-     print *, 'Wavepacket momentum =',pval(n,h,psi0) ! initial momentum expectation value
-     print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi0) ! initial momentum uncertainty
-     print *, 'Uncertainty product =',variance(n,h,psi0)*pvar(n,h,psi0) ! must be greater than 1/2
+     
+     psinorm = dble(sqrt(scalar(n,h,psi,psi)))
+     print *, 'norm before normalized: ', psinorm
+     call zdscal(n,1d0/psinorm,psi,1)
+     
+     
+     print *, 'Wavepacket position =',xval(n,h,psi) ! intial position expectation value
+     print *, 'Wavepacket position uncertainty =',variance(n,h,psi) ! initial position uncertainty
+     print *, 'Wavepacket momentum =',pval(n,h,psi) ! initial momentum expectation value
+     print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi) ! initial momentum uncertainty
+     print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi) ! must be greater than 1/2
      print *
   end do
   
@@ -234,8 +244,7 @@ subroutine propagate(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
-
-
+  
 
   ! second derivative loop
   do igrid = 2, n-1
@@ -247,5 +256,9 @@ subroutine propagate(n, h, psi, tau, chi)
   chi(n) = -psi(n-1) + 2d0*psi(n)
 
   ! combine psi: (1-iHt)*psi = psi - iHpsit
-  chi = psi - dcmplx(0d0,tau/(2d0*h*h))*chi  
+  chi = psi - dcmplx(0d0,tau/(2d0*h*h))*chi
+
+ 
+
+
 end subroutine
