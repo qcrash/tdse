@@ -8,14 +8,13 @@ program tdse
   double precision, parameter :: x0 = -0.8d0, p0 = 0.3d0, alpha = 1000d0, &
        & pi = 4d0*atan(1d0)
   double complex :: temp
-  double complex, allocatable :: psi(:), psi0(:), transmat(:,:), &
+  double complex, allocatable :: psi(:), psi0(:), chi(:), &
        & psitilda(:) ! psitilda is wavefunction in real orthonormal basis
   double precision, allocatable :: ham(:,:), tkin(:,:), &
-       & vpot(:), statevec(:,:), work(:), omega(:)
+       & vpot(:), work(:)
   double precision, external :: dznrm2
   double complex, external :: scalar
   double precision, external :: xval, variance, pval, pvar
-  double complex, allocatable :: chi(:)
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -32,7 +31,7 @@ program tdse
 
   !! Allocating higher order tensors
   allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n), &
-       & work(3*n),omega(n),statevec(n,n),transmat(n,n),psitilda(n), chi(n))
+       & work(3*n),chi(n))
   
   !! Discretizing initial wavepacket
   imz0sq = 0.25d0*(p0/alpha)**2
@@ -60,18 +59,7 @@ program tdse
   print *, 'Initial wavepacket momentum =',pval(n,h,psi0) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0) ! initial momentum uncertainty
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h,psi0) ! must be greater than 1/2
-   
-!!$  !! Transforming to real orthonormal basis
-!!$  temp = dcmplx(sqrt(h),0d0)
-!!$  do i = 1,n
-!!$     psitilda(i) = psi0(i)*temp ! rescale to make basis orthonormal
-!!$  end do
-!!$  psitilda(1) = psitilda(1)/dcmplx(sqrt(2d0),0d0)
-!!$  psitilda(n) = psitilda(n)/dcmplx(sqrt(2d0),0d0)
-!!$  if (idebug > 0) then
-!!$     print *, 'Norm in real orthonormal basis =', dznrm2(n,psitilda,1)
-!!$  end if
-  
+     
   !! Defining Hamiltonian operator
   vpot = 0d0 ! local potential at grid points
   hinv = 1d0/(h*h)
@@ -84,25 +72,6 @@ program tdse
      ham(1,i) = tkin(1,i)+vpot(i)
      ham(2,i) = tkin(2,i)
   end do h_loop
-  ! call dscal(2*n,1d0/h,ham,1)
-  ! ham(1,1) = 2d0*ham(1,1)
-  ! ham(2,1) = sqrt(2d0)*ham(2,1)
-  ! ham(1,n) = 2d0*ham(1,n)
-  ! ham(2,n) = sqrt(2d0)*ham(2,n)
-  
-  !! Diagonalizing Hamiltonian operator
-  omega = 0d0
-  statevec = 0d0
-  call dsbev('v','l',n,1,ham,2,omega,statevec,n,work,info)
-  if (info /=  0) then
-     print *, "Info = ", info
-     stop 'error in dsbev'
-  end if
-  do i = 1, n
-     do j = 1, n
-        transmat(i,j) = dcmplx(statevec(i,j),0d0) ! make statevec dcmplx
-     end do
-  end do
 
   !! Graphing eigenstates
   ! print *, "Static Hamiltonian eigenvalues :", omega
@@ -110,60 +79,14 @@ program tdse
   !    write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
   ! end do
 
-  
-
-!!$  !! Computing energy expectation value
-!!$  print *
-!!$  temp = 0d0
-!!$  do i = 1, n
-!!$     temp = temp + omega(i)*abs(psi(i))**2
-!!$  end do
-!!$  print *, 'energy expectation value in the momentum basis before propagation =', temp
-  
-  !! Propagating momentum wavefunction by one time step
-
-  
+  !! Propagating wavefunction by one time step  
   do itsteps = 1, ntsteps
      call propagate(n, h, psi0, tau, chi)
-
      
-     do i = 1, n
-       ! print *, 'Probability amplitude =', abs(psi(i))**2
-        psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
-     end do
-!!$     if (idebug > 0) then
-!!$        print *, 'Norm after time step in energy basis =', dznrm2(n,psi,1)
-!!$     end if
-!!$     
-!!$     !! Computing energy expectation value
-!!$     temp = 0d0
-!!$     do i = 1, n
-!!$        temp = temp + omega(i)*abs(psi(i))**2
-!!$     end do
-!!$     print *, 'energy expectation value in the momentum basis after propagation', temp
-
-     !! Transforming wavefunction back to grid basis
-     do i = 1, n
-        psi0(i) = dcmplx(0d0,0d0)
-        do j = 1, n
-           psi0(i) = psi0(i)+transmat(i,j)*psi(j)
-        end do
-     end do
-     ! call zgemv('n',n,n,dcmplx(1d0,0d0),transmat,n,psi,1,dcmplx(0d0,0d0),psi0,1)
-     if (idebug > 0) then
-        print *, 'Norm after time step in grid basis =', scalar(n,h,psi0,psi0)
-     end if
-
-!!$     !! Transforming back to grid basis
-!!$     temp = dcmplx(1d0/sqrt(h),0d0)
-!!$     do i = 1,n
-!!$        psi0(i) = psitilda(i)*temp ! rescale to make basis orthonormal
-!!$     end do
-!!$     psi0(1) = psi0(1)*dcmplx(sqrt(2d0),0d0)
-!!$     psi0(n) = psi0(n)*dcmplx(sqrt(2d0),0d0)
-!!$     if (idebug > 0) then
-!!$        print *, 'Norm in grid basis =', dble(sqrt(scalar(n,h,psi0,psi0)))
-!!$     end if
+!     do i = 1, n
+!       print *, 'Probability amplitude =', abs(psi(i))**2
+!       psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
+!     end do
 
      !! Testing initial position and variance
      print *, 'Absolute time =', t + tau*itsteps ! current time
@@ -176,7 +99,7 @@ program tdse
   end do
   
   !! Deallocation of higher order tensors
-  deallocate (psi,psi0,ham,tkin,vpot,work,omega,statevec,transmat,psitilda,chi)
+  deallocate (psi,psi0,ham,tkin,vpot,work,chi)
 end program tdse
 
 double complex function scalar(n,h,psi1,psi2)
@@ -268,8 +191,6 @@ double precision function pvar(n,h,psi)
   pvar = sqrt(pvar*h)
 end function pvar
 
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
 subroutine propagate(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
@@ -326,6 +247,5 @@ subroutine propagate(n, h, psi, tau, chi)
   chi(n) = -psi(n-1) + 2d0*psi(n)
 
   ! combine psi: (1-iHt)*psi = psi - iHpsit
-  chi = psi - dcmplx(0d0,tau/(2d0*h*h))*chi
-  
+  chi = psi - dcmplx(0d0,tau/(2d0*h*h))*chi  
 end subroutine
