@@ -9,7 +9,7 @@ program tdse
        & pi = 4d0*atan(1d0)
   double complex :: temp
   double complex, allocatable :: psi(:), psi0(:), chi(:), &
-       & psitilda(:) ! psitilda is wavefunction in real orthonormal basis
+       & psi_old(:) ! psi_old is wavefunction in real orthonormal basis
   double precision, allocatable :: ham(:,:), tkin(:,:), &
        & vpot(:), work(:)
   double precision, external :: dznrm2
@@ -30,7 +30,7 @@ program tdse
   t = 0d0
 
   !! Allocating higher order tensors
-  allocate (psi(n),psi0(n),ham(2,n),tkin(2,n),vpot(n), &
+  allocate (psi(n),psi0(n),psi_old(n),ham(2,n),tkin(2,n),vpot(n), &
        & work(3*n),chi(n))
   
   !! Discretizing initial wavepacket
@@ -80,10 +80,15 @@ program tdse
   ! end do
 
   psi = psi0 ! save initial wavefunction
+  ! propagate backward by 1 time step for psi(t-tau) or psi_old
+  call propagate(n, h, psi, -tau, psi_old)
 
   !! Propagating wavefunction by one time step  
   do itsteps = 1, ntsteps
-     call propagate(n, h, psi, tau, chi)
+     !     call propagate(n, h, psi, tau, chi)
+     call propagate_central(n, h, psi, psi_old, tau, chi)
+     ! save old wavefunction
+     psi_old = psi
      psi = chi ! use result  as new input in next iteration
 
      
@@ -106,10 +111,13 @@ program tdse
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi) ! initial momentum uncertainty
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi) ! must be greater than 1/2
      print *
+
+     
+     
   end do
   
   !! Deallocation of higher order tensors
-  deallocate (psi,psi0,ham,tkin,vpot,work,chi)
+  deallocate (psi,psi0,psi_old,ham,tkin,vpot,work,chi)
 end program tdse
 
 double complex function scalar(n,h,psi1,psi2)
@@ -201,6 +209,7 @@ double precision function pvar(n,h,psi)
   pvar = sqrt(pvar*h)
 end function pvar
 
+
 subroutine propagate(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
@@ -258,7 +267,65 @@ subroutine propagate(n, h, psi, tau, chi)
   ! combine psi: (1-iHt)*psi = psi - iHpsit
   chi = psi - dcmplx(0d0,tau/(2d0*h*h))*chi
 
- 
+end subroutine
 
+
+
+subroutine propagate_central(n, h, psi, psi_old, tau, chi)
+  !------------------------------------------------------------------------------
+  !------------------------------------------------------------------------------
+  !
+  !------------------------------------------------------------------------------
+  ! Description: e^(-iHt)=1-iHt propagate the wavefunction at time t on psi
+  ! on t + delta_t (same as propagate subroutine but using central difference)
+  !------------------------------------------------------------------------------
+  ! (What is the purpose of this subroutine? State the theory and the
+  ! algorithm used in a few sentences. Refer to literature or
+  ! documentation for detailed derivations, proofs, or pseudocode.
+  !------------------------------------------------------------------------------
+  !
+  implicit none
+  !------------------------------------------------------------------------------
+  ! Modules and Global Variables
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  ! External Functions
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  ! Input Parameters
+  !------------------------------------------------------------------------------
+  integer, intent(in):: n
+  double precision, intent(in):: h, tau
+  double complex, intent(in):: psi(n), psi_old(n)
+  !------------------------------------------------------------------------------
+  ! Output Parameters
+  !------------------------------------------------------------------------------
+  double complex, intent(out):: chi(n)
+  !------------------------------------------------------------------------------
+  ! Input/Output Parameters
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  !  Local Variables
+  !------------------------------------------------------------------------------
+  integer :: igrid
+  !------------------------------------------------------------------------------
+  !  Local Constants 
+  !------------------------------------------------------------------------------
+  
+
+  ! second derivative loop
+  do igrid = 2, n-1
+     chi(igrid) = -psi(igrid-1) + 2d0*psi(igrid) - psi(igrid+1)
+  end do
+
+  ! first and last points special case
+  chi(1) = 2d0*psi(1) - psi(2)
+  chi(n) = -psi(n-1) + 2d0*psi(n)
+
+  ! combine psi: psi(t+tau) = (2h/i)*Hpsi(t) + psi(t-tau)
+  chi = psi_old - dcmplx(0d0,tau/(h*h))*chi
 
 end subroutine
