@@ -59,7 +59,8 @@ program tdse
   print *, 'Initial wavepacket momentum =',pval(n,h,psi0) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0) ! initial momentum uncertainty
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h,psi0) ! must be greater than 1/2
-     
+  print *
+  
   !! Defining Hamiltonian operator
   vpot = 0d0 ! local potential at grid points
   hinv = 1d0/(h*h)
@@ -81,14 +82,14 @@ program tdse
 
   psi = psi0 ! save initial wavefunction
   ! propagate backward by 1 time step for psi(t-tau) or psi_old
-  call propagate(n, h, psi, -tau, psi_old)
+  ! call propagate(n, h, psi, -tau, psi_old)
 
   !! Propagating wavefunction by one time step  
   do itsteps = 1, ntsteps
-     !     call propagate(n, h, psi, tau, chi)
-     call propagate_ab(n, h, psi, psi_old, tau, chi)
-     ! save old wavefunction
-     psi_old = psi
+     ! call propagate(n, h, psi, tau, chi)
+     ! call propagate_ab(n, h, psi, psi_old, tau, chi)
+     call propagate_trap(n, h, psi, tau, chi)
+!!$     psi_old = psi ! save old wavefunction
      psi = chi ! use result  as new input in next iteration
 
      
@@ -101,7 +102,7 @@ program tdse
      print *, 'Absolute time =', t + tau*itsteps ! current time
      
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
-     print *, 'norm before normalized: ', psinorm
+     print *, 'Norm before normalized =', psinorm
      call zdscal(n,1d0/psinorm,psi,1)
      
      
@@ -110,10 +111,7 @@ program tdse
      print *, 'Wavepacket momentum =',pval(n,h,psi) ! initial momentum expectation value
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi) ! initial momentum uncertainty
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi) ! must be greater than 1/2
-     print *
-
-     
-     
+     print *     
   end do
   
   !! Deallocation of higher order tensors
@@ -391,4 +389,72 @@ subroutine propagate_ab(n, h, psi, psi_old, tau, chi)
   ! combine psi: psi(t+tau) = (2h/i)*Hpsi(t) + psi(t-tau)
   chi = psi + dcmplx(0d0,-tau*0.5d0/(h*h))*chi
 
-end subroutine
+end subroutine propagate_ab
+
+subroutine propagate_trap(n, h, psi, tau, chi)
+  !------------------------------------------------------------------------------
+  !------------------------------------------------------------------------------
+  !
+  !------------------------------------------------------------------------------
+  ! Description: e^(-iHt)=1-iHt propagate the wavefunction at time t on psi
+  ! on t + delta_t (using the trapezoidal rule)
+  ! psi(t + tau) = psi(t) - i*tau/2 H[psi(t) + psi(t + tau)] OR
+  ! [1 + i*tau/2 H]psi(t + tau) = [1 - i*tau/2 H]psi(t)
+  !------------------------------------------------------------------------------
+  !
+  implicit none
+  !------------------------------------------------------------------------------
+  ! Input Parameters
+  !------------------------------------------------------------------------------
+  integer, intent(in):: n
+  double precision, intent(in):: h, tau
+  double complex, intent(in):: psi(n)
+  !------------------------------------------------------------------------------
+  ! Output Parameters
+  !------------------------------------------------------------------------------
+  double complex, intent(out):: chi(n)
+  !------------------------------------------------------------------------------
+  ! Input/Output Parameters
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  !  Local Variables
+  !------------------------------------------------------------------------------
+  integer :: igrid
+  double complex :: psitmp(n), sub(n), main(n), super(n), tmp
+  !------------------------------------------------------------------------------
+  !  Local Constants 
+  !------------------------------------------------------------------------------
+  
+
+  ! second derivative loop
+  do igrid = 2, n-1
+     psitmp(igrid) = -psi(igrid-1) + 2d0*psi(igrid) - psi(igrid+1)
+  end do
+
+  ! first and last points special case
+  psitmp(1) = 2d0*psi(1) - psi(2)
+  psitmp(n) = -psi(n-1) + 2d0*psi(n)
+
+  ! compute [1 - i*tau/2 H]psi(t) and store on psitmp
+  psitmp = psi + dcmplx(0d0,-0.25d0*tau/(h*h))*psitmp
+
+  ! storing diagonals of [1 - tau/2i H] = [1 + i*tau/2 H]
+  main = dcmplx(1d0,0.5d0*tau/(h*h))
+  sub = dcmplx(1d0,-0.25d0*tau/(h*h))
+  super = sub
+  sub(1) = 0d0
+  super(n) = 0d0
+
+  ! tridiagonal matrix algorithm
+  do igrid = 2, n
+     tmp = sub(igrid)/main(igrid-1)
+     main(igrid) = main(igrid) - tmp*super(igrid-1)
+     psitmp(igrid) = psitmp(igrid) - tmp*psitmp(igrid-1)
+  end do
+  chi(n) = psitmp(n)/main(n)
+  do igrid = n-1, 1, -1
+     chi(igrid) = (psitmp(igrid) - super(igrid)*chi(igrid+1))/main(igrid)
+  end do
+
+end subroutine propagate_trap
