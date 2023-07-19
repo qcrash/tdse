@@ -438,16 +438,18 @@ subroutine propagate_trap(n, h, psi, tau, chi)
   !  Local Variables
   !------------------------------------------------------------------------------
   integer :: igrid
-  double complex, allocatable :: psitmp(:), sub(:), main(:), super(:), tmp
+  double complex, allocatable :: psitmp(:), sub(:), main(:), super(:), toeplitz(:,:)
+  double complex :: tmp
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
   
-  allocate(psitmp(n), sub(n), main(n), super(n))
+  allocate(psitmp(n), sub(n), main(n), super(n), toeplitz(4,n))
   
   ! second derivative loop
   do igrid = 2, n-1
      psitmp(igrid) = -(psi(igrid-1) - 2d0*psi(igrid) + psi(igrid+1))
+     ! -d2/dx^2 psi => psitmp
   end do
 
   ! first and last points special case
@@ -458,23 +460,28 @@ subroutine propagate_trap(n, h, psi, tau, chi)
   psitmp = psi + dcmplx(0d0,-0.5d0*tau/(h*h))*psitmp
 
   ! storing diagonals of [1 - tau/2i H] = [1 + i*tau/2 H]
-  main = dcmplx(1d0, tau/(h*h))
-  sub = dcmplx(1d0, -0.5d0*tau/(h*h))
+  main = dcmplx(1d0, -tau/(h*h))
+  sub = dcmplx(0d0, 0.5d0*tau/(h*h))
   super = sub
-  sub(1) = 0d0
-  super(n) = 0d0
+  sub(1) = dcmplx(0d0, 0d0)
+  super(n) = dcmplx(0d0, 0d0)
 
-  ! tridiagonal matrix algorithm
-  do igrid = 2, n
-     tmp = sub(igrid)/main(igrid-1)
-     main(igrid) = main(igrid) - tmp*super(igrid-1)
-     psitmp(igrid) = psitmp(igrid) - tmp*psitmp(igrid-1)
-  end do
-  chi(n) = psitmp(n)/main(n)
-  do igrid = n-1, 1, -1
-     chi(igrid) = (psitmp(igrid) - super(igrid)*chi(igrid+1))/main(igrid)
-  end do
+  ! define toeplitz [1 - tau/2i H] = [1 + i*tau/2 H]
   
-  deallocate(psitmp, sub, main, super)
+
+  call zgbsv(n, 1, 1, 1, 
+  
+  ! tridiagonal matrix algorithm
+!!$  do igrid = 2, n
+!!$     tmp = sub(igrid)/main(igrid-1)
+!!$     main(igrid) = main(igrid) - tmp*super(igrid-1)
+!!$     psitmp(igrid) = psitmp(igrid) - tmp*psitmp(igrid-1)
+!!$  end do
+!!$  chi(n) = psitmp(n)/main(n)
+!!$  do igrid = n-1, 1, -1
+!!$     chi(igrid) = (psitmp(igrid) - super(igrid)*chi(igrid+1))/main(igrid)
+!!$  end do
+  
+  deallocate(psitmp, sub, main, super, toeplitz)
 
 end subroutine propagate_trap
