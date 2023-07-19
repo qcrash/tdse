@@ -88,6 +88,13 @@ program tdse
   do itsteps = 1, ntsteps
      ! call propagate(n, h, psi, tau, chi)
      ! call propagate_ab(n, h, psi, psi_old, tau, chi)
+
+
+
+
+     
+     psinorm = dble(sqrt(scalar(n,h,psi,psi)))
+     print *, 'Norm before propagation =', psinorm
      call propagate_trap(n, h, psi, tau, chi)
 !!$     psi_old = psi ! save old wavefunction
      psi = chi ! use result  as new input in next iteration
@@ -102,8 +109,18 @@ program tdse
      print *, 'Absolute time =', t + tau*itsteps ! current time
      
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
-     print *, 'Norm before normalized =', psinorm
-     call zdscal(n,1d0/psinorm,psi,1)
+     print *, 'Norm after propagation =', psinorm
+
+
+
+
+
+
+
+
+
+     
+     ! call zdscal(n,1d0/psinorm,psi,1)
      
      
      print *, 'Wavepacket position =',xval(n,h,psi) ! intial position expectation value
@@ -421,27 +438,28 @@ subroutine propagate_trap(n, h, psi, tau, chi)
   !  Local Variables
   !------------------------------------------------------------------------------
   integer :: igrid
-  double complex :: psitmp(n), sub(n), main(n), super(n), tmp
+  double complex, allocatable :: psitmp(:), sub(:), main(:), super(:), tmp
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
   
-
+  allocate(psitmp(n), sub(n), main(n), super(n))
+  
   ! second derivative loop
   do igrid = 2, n-1
-     psitmp(igrid) = -psi(igrid-1) + 2d0*psi(igrid) - psi(igrid+1)
+     psitmp(igrid) = -(psi(igrid-1) - 2d0*psi(igrid) + psi(igrid+1))
   end do
 
   ! first and last points special case
-  psitmp(1) = 2d0*psi(1) - psi(2)
-  psitmp(n) = -psi(n-1) + 2d0*psi(n)
+  psitmp(1) = -(-2d0*psi(1) + psi(2))
+  psitmp(n) = -(psi(n-1) - 2d0*psi(n))
 
   ! compute [1 - i*tau/2 H]psi(t) and store on psitmp
-  psitmp = psi + dcmplx(0d0,-0.25d0*tau/(h*h))*psitmp
+  psitmp = psi + dcmplx(0d0,-0.5d0*tau/(h*h))*psitmp
 
   ! storing diagonals of [1 - tau/2i H] = [1 + i*tau/2 H]
-  main = dcmplx(1d0,0.5d0*tau/(h*h))
-  sub = dcmplx(1d0,-0.25d0*tau/(h*h))
+  main = dcmplx(1d0, tau/(h*h))
+  sub = dcmplx(1d0, -0.5d0*tau/(h*h))
   super = sub
   sub(1) = 0d0
   super(n) = 0d0
@@ -456,5 +474,7 @@ subroutine propagate_trap(n, h, psi, tau, chi)
   do igrid = n-1, 1, -1
      chi(igrid) = (psitmp(igrid) - super(igrid)*chi(igrid+1))/main(igrid)
   end do
+  
+  deallocate(psitmp, sub, main, super)
 
 end subroutine propagate_trap
