@@ -95,7 +95,8 @@ program tdse
      
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
      print *, 'Norm before propagation =', psinorm
-     call propagate_trap(n, h, psi, tau, chi)
+     call ham_psi(n, h, psi, psi_old)
+     call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     psi_old = psi ! save old wavefunction
      psi = chi ! use result  as new input in next iteration
 
@@ -405,10 +406,9 @@ subroutine propagate_ab(n, h, psi, psi_old, tau, chi)
 
   ! combine psi: psi(t+tau) = (2h/i)*Hpsi(t) + psi(t-tau)
   chi = psi + dcmplx(0d0,-tau*0.5d0/(h*h))*chi
-
 end subroutine propagate_ab
 
-subroutine propagate_trap(n, h, psi, tau, chi)
+subroutine propagate_trap(n, h, psi, tau, chi, Hpsi)
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
   !
@@ -425,7 +425,7 @@ subroutine propagate_trap(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   integer, intent(in):: n
   double precision, intent(in):: h, tau
-  double complex, intent(in):: psi(n)
+  double complex, intent(in):: psi(n), Hpsi(n)
   !------------------------------------------------------------------------------
   ! Output Parameters
   !------------------------------------------------------------------------------
@@ -437,39 +437,43 @@ subroutine propagate_trap(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   !  Local Variables
   !------------------------------------------------------------------------------
-  integer :: igrid
-  double complex, allocatable :: psitmp(:), sub(:), main(:), super(:), toeplitz(:,:)
+  integer :: igrid, ierr, i, j
+  double complex, allocatable :: psitmp(:), sub(:), main(:), super(:), &
+       & toeplitz(:,:), rhs(:)
+  integer, allocatable :: ipiv(:)
   double complex :: tmp
+  double complex, external :: scalar
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
+  allocate(psitmp(n), sub(n), main(n), super(n), toeplitz(4,n), ipiv(n),&
+       & rhs(n))
   
-  allocate(psitmp(n), sub(n), main(n), super(n), toeplitz(4,n))
-  
-  ! second derivative loop
-  do igrid = 2, n-1
-     psitmp(igrid) = -(psi(igrid-1) - 2d0*psi(igrid) + psi(igrid+1))
-     ! -d2/dx^2 psi => psitmp
-  end do
-
-  ! first and last points special case
-  psitmp(1) = -(-2d0*psi(1) + psi(2))
-  psitmp(n) = -(psi(n-1) - 2d0*psi(n))
-
   ! compute [1 - i*tau/2 H]psi(t) and store on psitmp
-  psitmp = psi + dcmplx(0d0,-0.5d0*tau/(h*h))*psitmp
+  psitmp = psi + dcmplx(0d0,-0.5d0*tau)*Hpsi
 
   ! storing diagonals of [1 - tau/2i H] = [1 + i*tau/2 H]
-  main = dcmplx(1d0, -tau/(h*h))
-  sub = dcmplx(0d0, 0.5d0*tau/(h*h))
+  main = dcmplx(1d0, 0.5d0*tau/(h*h))
+  sub = dcmplx(0d0, -0.25d0*tau/(h*h))
   super = sub
   sub(1) = dcmplx(0d0, 0d0)
   super(n) = dcmplx(0d0, 0d0)
 
   ! define toeplitz [1 - tau/2i H] = [1 + i*tau/2 H]
-  
+  toeplitz = dcmplx(0d0,0d0)
+  do j = 1,n
+     toeplitz(2,j) = super(j) ! superdiagonal
+     toeplitz(3,j) = main(j) ! main diagonal
+     toeplitz(4,j) = sub(j) ! subdiagonal
+  end do
+!  rhs = psitmp
+  call zgbsv(n, 1, 1, 1, toeplitz, 4, ipiv, psitmp, n, ierr)
+  print *, 'Info ZBGSV =', ierr
+  chi = psitmp
 
-  call zgbsv(n, 1, 1, 1, 
+  
+!  print *, 'Residual norm =', dble(sqrt(scalar(n,h,chi,chi)))
+
   
   ! tridiagonal matrix algorithm
 !!$  do igrid = 2, n
@@ -482,6 +486,56 @@ subroutine propagate_trap(n, h, psi, tau, chi)
 !!$     chi(igrid) = (psitmp(igrid) - super(igrid)*chi(igrid+1))/main(igrid)
 !!$  end do
   
-  deallocate(psitmp, sub, main, super, toeplitz)
+  deallocate(psitmp, sub, main, super, toeplitz, ipiv, rhs)
 
 end subroutine propagate_trap
+
+subroutine ham_psi(n, h, psi, Hpsi)
+!------------------------------------------------------------------------------
+! Description:
+!------------------------------------------------------------------------------
+! Quickly compute H applied to psi given n and h.
+!------------------------------------------------------------------------------
+  implicit none
+!------------------------------------------------------------------------------
+! Modules and Global Variables
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+! External Functions
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+! Input Parameters
+!------------------------------------------------------------------------------
+  integer, intent(in) :: n
+  double precision, intent(in) :: h
+  double complex, intent(in) :: psi(n)
+!------------------------------------------------------------------------------
+! Output Parameters
+!------------------------------------------------------------------------------
+  double complex, intent(out) :: Hpsi(n)
+!------------------------------------------------------------------------------
+! Input/Output Parameters
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+!  Local Variables
+!------------------------------------------------------------------------------
+  integer :: igrid
+!------------------------------------------------------------------------------
+!  Local Constants 
+!------------------------------------------------------------------------------
+  ! second derivative loop
+  do igrid = 2, n-1
+     Hpsi(igrid) = -(psi(igrid-1) - 2d0*psi(igrid) + psi(igrid+1))
+     ! -d2/dx^2 psi => Hpsi
+  end do
+
+  ! first and last points special case
+  Hpsi(1) = -(-2d0*psi(1) + psi(2))
+  Hpsi(n) = -(psi(n-1) - 2d0*psi(n))
+
+  ! multiply -d2/dx^2 by 1/(2h^2) to get Hpsi
+  Hpsi = dcmplx(0.5d0/(h*h),0d0)*Hpsi
+end subroutine ham_psi
