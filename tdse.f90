@@ -198,8 +198,9 @@ double precision function pval(n,h,psi)
   double complex, intent(in) :: psi(n)
   integer :: igrid
 
-  pval = 0.5d0*(aimag(conjg(psi(1))*psi(2))/(2d0*h) &
-       & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h)) ! First and last point
+  pval = 0d0 ! boundary conditions: psi'(1) = psi'(n) = 0
+  ! pval = 0.5d0*(aimag(conjg(psi(1))*psi(2))/(2d0*h) &
+  !     & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h)) ! First and last point
   do igrid = 2, n-1
      pval = pval + aimag(conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1))/(2d0*h))
   end do 
@@ -217,8 +218,9 @@ double precision function pvar(n,h,psi)
   
   ! var^2 = expt[(p-expt(p))^2] = (abs(p*psi - expt(p)*psi))^2
   tmp = pval(n,h,psi)
-  pvar = 0.5d0*((abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
-       & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2) ! First and last point
+  pvar = 0d0 ! boundary condition: psi'(1) = psi'(n) = 0
+!!$  pvar = 0.5d0*((abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
+!!$       & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2) ! First and last point
   do igrid = 2, n-1
      pvar = pvar + (abs(((psi(igrid+1)-psi(igrid-1)))/(2d0*h) - tmp*psi(igrid)))**2
   end do
@@ -533,8 +535,8 @@ subroutine ham_psi(n, h, psi, Hpsi)
   end do
 
   ! first and last points special case
-  Hpsi(1) = -(-2d0*psi(1) + psi(2))
-  Hpsi(n) = -(psi(n-1) - 2d0*psi(n))
+!!$  Hpsi(1) = -(-2d0*psi(1) + psi(2))
+!!$  Hpsi(n) = -(psi(n-1) - 2d0*psi(n))
 
   ! multiply -d2/dx^2 by 1/(2h^2) to get Hpsi
   Hpsi = dcmplx(0.5d0/(h*h),0d0)*Hpsi
