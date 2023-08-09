@@ -18,9 +18,9 @@ program tdse
   
   !! User-defined parameters
   print *, 'Number of grid points ='
-  read (*,*) n
+  read (*,*) n ! Read number of grid points BETWEEN -1 and 1 (not including -1 and 1)
   ! Include user prompts for x0, p0, alpha
-  h = 2d0/dble(n-1)
+  h = 2d0/dble(n+1)
 
   !! Initializing time variables
   print *, 'Number of time steps ='
@@ -29,16 +29,18 @@ program tdse
   read (*,*) tau
   t = 0d0
 
+  ! open file psi_values on unit 69
+  open(unit = 69, file = "psi_values")
+  
+
   !! Allocating higher order tensors
   allocate (psi(n),psi0(n),psi_old(n),ham(2,n),tkin(2,n),vpot(n), &
        & work(3*n),chi(n))
   
   !! Discretizing initial wavepacket
   imz0sq = 0.25d0*(p0/alpha)**2
-  psi0(1) = 0d0
-  psi0(n) = 0d0 ! boundary conditions
-  psi0_loop: do i = 2, n-1
-     xtemp = dble(i-1)*h - 1d0 - x0
+  psi0_loop: do i = 1, n
+     xtemp = dble(i)*h - 1d0 - x0
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
      psi0(i) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
      ! psi0(i) = dcmplx(1d0,0d0) ! debug wavepacket
@@ -56,10 +58,12 @@ program tdse
   !! Testing initial position and variance
   print *, 'Initial wavepacket position =',xval(n,h,psi0) ! intial position expectation value
   print *, 'Initial wavepacket position uncertainty =',variance(n,h,psi0) ! initial position uncertainty
-  print *, 'Initial wavepacket momentum =',pval(n,h,psi0) ! initial momentum expectation value
+  print *, 'Initial wavepacket momentum =',pval(n,h,1,psi0) ! initial momentum expectation value
+  print *, 'Initial wavepacket momentum =',pval(n,h,0,psi0) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0) ! initial momentum uncertainty
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h,psi0) ! must be greater than 1/2
   print *
+  call dump_psi(n, h, 69, psi0)
   
   !! Defining Hamiltonian operator
   vpot = 0d0 ! local potential at grid points
@@ -108,6 +112,7 @@ program tdse
 
      !! Testing initial position and variance
      print *, 'Absolute time =', t + tau*itsteps ! current time
+     print *, 'Current time step =', itsteps
      
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
      print *, 'Norm after propagation =', psinorm
@@ -126,11 +131,15 @@ program tdse
      
      print *, 'Wavepacket position =',xval(n,h,psi) ! intial position expectation value
      print *, 'Wavepacket position uncertainty =',variance(n,h,psi) ! initial position uncertainty
-     print *, 'Wavepacket momentum =',pval(n,h,psi) ! initial momentum expectation value
+     print *, 'Wavepacket momentum =',pval(n,h,1,psi) ! initial momentum expectation value
+     print *, 'Wavepacket momentum =',pval(n,h,0,psi) ! initial momentum expectation value
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi) ! initial momentum uncertainty
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi) ! must be greater than 1/2
      print *     
   end do
+
+
+  close(unit = 69, status = "keep")
   
   !! Deallocation of higher order tensors
   deallocate (psi,psi0,psi_old,ham,tkin,vpot,work,chi)
@@ -149,9 +158,10 @@ double complex function scalar(n,h,psi1,psi2)
   integer :: igrid
 
   !! Calculating scalar product
-  scalar = 0.5d0*(conjg(psi1(1))*psi2(1) &
-       & + conjg(psi1(n))*psi2(n)) ! First and last point
-  do igrid = 2, n-1
+  ! scalar = 0.5d0*(conjg(psi1(1))*psi2(1) &
+  !     & + conjg(psi1(n))*psi2(n)) ! First and last point
+  scalar = 0d0
+  do igrid = 1, n
      scalar = scalar + conjg(psi1(igrid))*psi2(igrid)
   end do 
   scalar = scalar*h
@@ -164,10 +174,11 @@ double precision function xval(n,h,psi)
   double complex, intent(in) :: psi(n)
   integer :: igrid
 
-  xval = 0.5d0*(-conjg(psi(1))*psi(1) &
-       & + conjg(psi(n))*psi(n)) ! First and last point
-  do igrid = 2, n-1
-     xval = xval + conjg(psi(igrid))*psi(igrid)*(dble(igrid-1)*h - 1d0)
+!!$  xval = 0.5d0*(-conjg(psi(1))*psi(1) &
+!!$       & + conjg(psi(n))*psi(n)) ! First and last point
+  xval = 0d0
+  do igrid = 1, n
+     xval = xval + conjg(psi(igrid))*psi(igrid)*(dble(igrid)*h - 1d0)
   end do 
   xval = xval*h
 end function xval
@@ -183,28 +194,38 @@ double precision function variance(n,h,psi)
   
   ! var^2 = expt[(x-expt(x))^2]
   tmp = xval(n,h,psi)
-  variance = conjg(psi(1))*psi(1)*(-0.5d0 - tmp)**2 &
-       & + conjg(psi(n))*psi(n)*(0.5d0 - tmp)**2 ! First and last point
-  do igrid = 2, n-1
-     variance = variance + conjg(psi(igrid))*psi(igrid)*(dble(igrid-1)*h - 1d0 - tmp)**2
+!!$  variance = conjg(psi(1))*psi(1)*(-0.5d0 - tmp)**2 &
+!!$       & + conjg(psi(n))*psi(n)*(0.5d0 - tmp)**2 ! First and last point
+  variance = 0d0
+  do igrid = 1, n
+     variance = variance + conjg(psi(igrid))*psi(igrid)*(dble(igrid)*h - 1d0 - tmp)**2
   end do
   variance = sqrt(variance*h)
 end function variance
 
-double precision function pval(n,h,psi)
+double precision function pval(n,h,idebug,psi)
   implicit none
-  integer, intent(in):: n
+  integer, intent(in):: n, idebug
   double precision, intent(in) :: h
   double complex, intent(in) :: psi(n)
+  double complex :: tmp
   integer :: igrid
 
-  pval = 0d0 ! boundary conditions: psi'(1) = psi'(n) = 0
-  ! pval = 0.5d0*(aimag(conjg(psi(1))*psi(2))/(2d0*h) &
-  !     & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h)) ! First and last point
+  pval = aimag(conjg(psi(1))*psi(2))/(2d0*h) &
+       & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h) ! First and last point
   do igrid = 2, n-1
      pval = pval + aimag(conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1))/(2d0*h))
   end do 
   pval = pval*h
+  
+  if (idebug == 1) then
+     tmp = conjg(psi(1))*psi(2)/(2d0*h) &
+          & - conjg(psi(n))*psi(n-1)/(2d0*h) ! First and last point
+     do igrid = 2, n-1
+        tmp = tmp + conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1))/(2d0*h)
+     end do
+     print *, 'Brute force momentum =',tmp*h
+  end if
 end function pval
 
 double precision function pvar(n,h,psi)
@@ -217,10 +238,9 @@ double precision function pvar(n,h,psi)
   integer :: igrid
   
   ! var^2 = expt[(p-expt(p))^2] = (abs(p*psi - expt(p)*psi))^2
-  tmp = pval(n,h,psi)
-  pvar = 0d0 ! boundary condition: psi'(1) = psi'(n) = 0
-!!$  pvar = 0.5d0*((abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
-!!$       & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2) ! First and last point
+  tmp = pval(n,h,1,psi)
+  pvar = (abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
+       & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2 ! First and last point
   do igrid = 2, n-1
      pvar = pvar + (abs(((psi(igrid+1)-psi(igrid-1)))/(2d0*h) - tmp*psi(igrid)))**2
   end do
@@ -535,9 +555,54 @@ subroutine ham_psi(n, h, psi, Hpsi)
   end do
 
   ! first and last points special case
-!!$  Hpsi(1) = -(-2d0*psi(1) + psi(2))
-!!$  Hpsi(n) = -(psi(n-1) - 2d0*psi(n))
+  Hpsi(1) = -(-2d0*psi(1) + psi(2))
+  Hpsi(n) = -(psi(n-1) - 2d0*psi(n))
 
   ! multiply -d2/dx^2 by 1/(2h^2) to get Hpsi
   Hpsi = dcmplx(0.5d0/(h*h),0d0)*Hpsi
 end subroutine ham_psi
+
+
+subroutine dump_psi(n, h, i_unit, psi)
+!------------------------------------------------------------------------------
+! Description: 
+!------------------------------------------------------------------------------
+! dump psi on unit i unit.
+!------------------------------------------------------------------------------
+  implicit none
+!------------------------------------------------------------------------------
+! Modules and Global Variables
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+! External Functions
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+! Input Parameters
+!------------------------------------------------------------------------------
+  integer, intent(in) :: n, i_unit
+  double complex, intent(in) :: psi(n)
+  double precision, intent(in) :: h
+!------------------------------------------------------------------------------
+! Output Parameters
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+! Input/Output Parameters
+!------------------------------------------------------------------------------
+
+!------------------------------------------------------------------------------
+!  Local Variables
+!------------------------------------------------------------------------------
+  integer :: igrid
+!------------------------------------------------------------------------------
+!  Local Constants 
+!------------------------------------------------------------------------------
+  ! second derivative loop
+  do igrid = 1, n
+     write(i_unit,"(f16.10,2(2x, g24.17))") (h*dble(igrid) - 1d0),&
+          & real(psi(igrid)), aimag(psi(igrid))
+  end do
+end subroutine dump_psi
+
