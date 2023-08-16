@@ -468,29 +468,33 @@ subroutine propagate_trap(n, h, psi, tau, chi, Hpsi)
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
-  allocate(psitmp(n), sub(n), main(n), super(n), toeplitz(4,n), ipiv(n),&
+  allocate(psitmp(n), sub(n), main(n), super(n), toeplitz(7,n), ipiv(n),&
        & rhs(n))
   
   ! compute [1 - i*tau/2 H]psi(t) and store on psitmp
   psitmp = psi + dcmplx(0d0,-0.5d0*tau)*Hpsi
 
   ! storing diagonals of [1 - tau/2i H] = [1 + i*tau/2 H]
-  main = dcmplx(1d0, 0.5d0*tau/(h*h))
-  sub = dcmplx(0d0, -0.25d0*tau/(h*h))
+  main = dcmplx(1d0, 0.125d0*tau/(h*h))
+  sub = dcmplx(0d0, -0.0625d0*tau/(h*h))
   super = sub
   sub(1) = dcmplx(0d0, 0d0)
+  sub(2) = dcmplx(0d0, 0d0)
+  super(n-1) = dcmplx(0d0, 0d0)
   super(n) = dcmplx(0d0, 0d0)
+  main(1) = 0.5d0*main(1) ! boundary conditions
+  main(n) = 0.5d0*main(n)
 
   ! define toeplitz [1 - tau/2i H] = [1 + i*tau/2 H]
   toeplitz = dcmplx(0d0,0d0)
   do j = 1,n
-     toeplitz(2,j) = super(j) ! superdiagonal
-     toeplitz(3,j) = main(j) ! main diagonal
-     toeplitz(4,j) = sub(j) ! subdiagonal
+     toeplitz(3,j) = super(j) ! superdiagonal
+     toeplitz(5,j) = main(j) ! main diagonal
+     toeplitz(7,j) = sub(j) ! subdiagonal
   end do
 !  rhs = psitmp
-  call zgbsv(n, 1, 1, 1, toeplitz, 4, ipiv, psitmp, n, ierr)
-  print *, 'Info ZBGSV =', ierr
+  call zgbsv(n, 2, 2, 1, toeplitz, 7, ipiv, psitmp, n, ierr)
+  print *, 'Info ZGBSV =', ierr
   chi = psitmp
 
   
@@ -549,17 +553,20 @@ subroutine ham_psi(n, h, psi, Hpsi)
 !  Local Constants 
 !------------------------------------------------------------------------------
   ! second derivative loop
-  do igrid = 2, n-1
-     Hpsi(igrid) = -(psi(igrid-1) - 2d0*psi(igrid) + psi(igrid+1))
+  do igrid = 3, n-2
+     Hpsi(igrid) = -(psi(igrid-2) - 2d0*psi(igrid) + psi(igrid+2))
      ! -d2/dx^2 psi => Hpsi
   end do
 
   ! first and last points special case
-  Hpsi(1) = -(-2d0*psi(1) + psi(2))
-  Hpsi(n) = -(psi(n-1) - 2d0*psi(n))
+  Hpsi(1) = -(-psi(1) + psi(3))
+  Hpsi(2) = -(-2d0*psi(2) + psi(4))
+  Hpsi(n-1) = -(psi(n-3) - 2d0*psi(n-1))
+  Hpsi(n) = -(psi(n-2) - psi(n))
 
   ! multiply -d2/dx^2 by 1/(2h^2) to get Hpsi
-  Hpsi = dcmplx(0.5d0/(h*h),0d0)*Hpsi
+  Hpsi = dcmplx(0.125d0/(h*h),0d0)*Hpsi ! 1/2 from p^2/2 and 1/4 from
+  ! central difference formula
 end subroutine ham_psi
 
 
