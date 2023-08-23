@@ -58,9 +58,10 @@ program tdse
   !! Testing initial position and variance
   print *, 'Initial wavepacket position =',xval(n,h,psi0) ! intial position expectation value
   print *, 'Initial wavepacket position uncertainty =',variance(n,h,psi0) ! initial position uncertainty
-  print *, 'Initial wavepacket momentum =',pval(n,h,1,psi0) ! initial momentum expectation value
+!!$  print *, 'Initial wavepacket momentum =',pval(n,h,0,psi0) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum =',pval(n,h,0,psi0) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0) ! initial momentum uncertainty
+  print *, 'Initial wavepacket kinetic energy =',(pvar(n,h,psi0)+(pval(n,h,0,psi0))**2)/2d0
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h,psi0) ! must be greater than 1/2
   print *
   call dump_psi(n, h, 69, psi0)
@@ -102,7 +103,9 @@ program tdse
      call ham_psi(n, h, psi, psi_old)
      call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     psi_old = psi ! save old wavefunction
-     psi = chi ! use result  as new input in next iteration
+     psinorm = dble(sqrt(scalar(n,h,chi,chi)))
+     psi = chi/psinorm ! use result  as new input in next iteration
+     
 
      
 !     do i = 1, n
@@ -131,9 +134,10 @@ program tdse
      
      print *, 'Wavepacket position =',xval(n,h,psi) ! intial position expectation value
      print *, 'Wavepacket position uncertainty =',variance(n,h,psi) ! initial position uncertainty
-     print *, 'Wavepacket momentum =',pval(n,h,1,psi) ! initial momentum expectation value
+!!$     print *, 'Wavepacket momentum =',pval(n,h,1,psi) ! initial momentum expectation value
      print *, 'Wavepacket momentum =',pval(n,h,0,psi) ! initial momentum expectation value
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi) ! initial momentum uncertainty
+     print *, 'Wavepacket kinetic energy =',(pvar(n,h,psi)+(pval(n,h,0,psi))**2)/2d0
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi) ! must be greater than 1/2
      print *     
   end do
@@ -238,7 +242,7 @@ double precision function pvar(n,h,psi)
   integer :: igrid
   
   ! var^2 = expt[(p-expt(p))^2] = (abs(p*psi - expt(p)*psi))^2
-  tmp = pval(n,h,1,psi)
+  tmp = pval(n,h,0,psi)
   pvar = (abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
        & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2 ! First and last point
   do igrid = 2, n-1
