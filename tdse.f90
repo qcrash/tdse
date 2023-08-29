@@ -19,7 +19,7 @@ program tdse
   !! User-defined parameters
   print *, 'Number of grid points ='
   read (*,*) n ! Read number of grid points BETWEEN -1 and 1 (not including -1 and 1)
-  ! Include user prompts for x0, p0, alpha
+  ! Include user prompts for x0, p0, alpha in the future
   h = 2d0/dble(n+1)
 
   !! Initializing time variables
@@ -29,15 +29,17 @@ program tdse
   read (*,*) tau
   t = 0d0
 
-  ! open file psi_values on unit 69
+  !! Open file psi_values on unit 69
   open(unit = 69, file = "psi_values")
   
-
   !! Allocating higher order tensors
   allocate (psi(n),psi0(n),psi_old(n),ham(2,n),tkin(2,n),vpot(n), &
        & work(3*n),chi(n))
+  ! Remove ham, tkin, and vpot in the future
+  ! Rename psi_old to hpsi in the future
   
   !! Discretizing initial wavepacket
+  ! Comment in the explicit formula for psi0 in the future
   imz0sq = 0.25d0*(p0/alpha)**2
   psi0_loop: do i = 1, n
      xtemp = dble(i)*h - 1d0 - x0
@@ -46,7 +48,7 @@ program tdse
      ! psi0(i) = dcmplx(1d0,0d0) ! debug wavepacket
   end do psi0_loop
   
-  !! Normalizing initial wavepacket
+  !! Normalizing and saving initial wavepacket
   psinorm = dble(sqrt(scalar(n,h,psi0,psi0)))
   call zdscal(n,1d0/psinorm,psi0,1)
   if (idebug > 0) then
@@ -54,7 +56,8 @@ program tdse
      psinorm = dble(sqrt(scalar(n,h,psi0,psi0)))
      print *, 'Normalized wavepacket norm =',psinorm
   end if
-
+  psi = psi0 ! save initial wavefunction
+  
   !! Testing initial position and variance
   print *, 'Initial wavepacket position =',xval(n,h,psi0) ! intial position expectation value
   print *, 'Initial wavepacket position uncertainty =',variance(n,h,psi0) ! initial position uncertainty
@@ -66,72 +69,50 @@ program tdse
   print *
   call dump_psi(n, h, 69, psi0)
   
-  !! Defining Hamiltonian operator
-  vpot = 0d0 ! local potential at grid points
-  hinv = 1d0/(h*h)
-  t_loop_diagonal: do i = 1,n
-     tkin(1,i) = hinv ! diagonal
-     tkin(2,i) = -0.5d0*hinv ! offdiagonal
-     ! tkin(2,i) = 0d0 ! debug
-  end do t_loop_diagonal
-  h_loop: do i = 1,n
-     ham(1,i) = tkin(1,i)+vpot(i)
-     ham(2,i) = tkin(2,i)
-  end do h_loop
+!!$  !! Defining Hamiltonian operator
+!!$  vpot = 0d0 ! local potential at grid points
+!!$  hinv = 1d0/(h*h)
+!!$  t_loop_diagonal: do i = 1,n
+!!$     tkin(1,i) = hinv ! diagonal
+!!$     tkin(2,i) = -0.5d0*hinv ! offdiagonal
+!!$     ! tkin(2,i) = 0d0 ! debug
+!!$  end do t_loop_diagonal
+!!$  h_loop: do i = 1,n
+!!$     ham(1,i) = tkin(1,i)+vpot(i)
+!!$     ham(2,i) = tkin(2,i)
+!!$  end do h_loop
 
-  !! Graphing eigenstates
-  ! print *, "Static Hamiltonian eigenvalues :", omega
-  ! do i=1,n
-  !    write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
-  ! end do
+!!$  !! Graphing eigenstates
+!!$  print *, "Static Hamiltonian eigenvalues :", omega
+!!$  do i=1,n
+!!$     write (88,*) dble(i-1)*h - 1d0, statevec(i,n)
+!!$  end do
 
-  psi = psi0 ! save initial wavefunction
-  ! propagate backward by 1 time step for psi(t-tau) or psi_old
-  ! call propagate(n, h, psi, -tau, psi_old)
-
-  !! Propagating wavefunction by one time step  
+  !! Propagating wavefunction by one time step
+!!$  call propagate(n, h, psi, -tau, psi_old)
+!!$  propagate backward by 1 time step for psi(t-tau) aka psi_old
   do itsteps = 1, ntsteps
-     ! call propagate(n, h, psi, tau, chi)
-     ! call propagate_ab(n, h, psi, psi_old, tau, chi)
-
-
-
-
-     
+!!$     call propagate(n, h, psi, tau, chi)
+!!$     call propagate_ab(n, h, psi, psi_old, tau, chi)     
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
      print *, 'Norm before propagation =', psinorm
      call ham_psi(n, h, psi, psi_old)
      call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     psi_old = psi ! save old wavefunction
-     psinorm = dble(sqrt(scalar(n,h,chi,chi)))
-     psi = chi/psinorm ! use result  as new input in next iteration
+     psinorm = dble(sqrt(scalar(n,h,chi,chi))) ! renormalization
+     psi = chi/psinorm ! use result as new input in next iteration
      
+!!$     do i = 1, n
+!!$        print *, 'Probability amplitude =', abs(psi(i))**2
+!!$        psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
+!!$     end do
+     ! Someone remind me the purpose of these lines bc I forgot ~Toby
 
-     
-!     do i = 1, n
-!       print *, 'Probability amplitude =', abs(psi(i))**2
-!       psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
-!     end do
-
-     !! Testing initial position and variance
+     !! Testing position and variance after propagation
      print *, 'Absolute time =', t + tau*itsteps ! current time
      print *, 'Current time step =', itsteps
-     
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
-     print *, 'Norm after propagation =', psinorm
-
-
-
-
-
-
-
-
-
-     
-     ! call zdscal(n,1d0/psinorm,psi,1)
-     
-     
+!!$     print *, 'Norm after propagation =', psinorm ! Commented out bc we forced renormalization
      print *, 'Wavepacket position =',xval(n,h,psi) ! intial position expectation value
      print *, 'Wavepacket position uncertainty =',variance(n,h,psi) ! initial position uncertainty
 !!$     print *, 'Wavepacket momentum =',pval(n,h,1,psi) ! initial momentum expectation value
@@ -141,11 +122,9 @@ program tdse
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi) ! must be greater than 1/2
      print *     
   end do
-
-
-  close(unit = 69, status = "keep")
   
   !! Deallocation of higher order tensors
+  close(unit = 69, status = "keep") ! Close unit 69
   deallocate (psi,psi0,psi_old,ham,tkin,vpot,work,chi)
 end program tdse
 
