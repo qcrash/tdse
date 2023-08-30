@@ -5,13 +5,13 @@ program tdse
   integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
   double precision :: h, psinorm, tau, t ! grid spacing, time step, time param
   double precision :: hinv, imz0sq, xtemp, exptemp ! temp vars
-  double precision, parameter :: x0 = -0.8d0, p0 = 0.3d0, alpha = 1000d0, &
+  double precision, parameter :: x0 = 0d0, p0 = 0.3d0, alpha = 1000d0, &
        & pi = 4d0*atan(1d0)
   double complex :: temp
-  double complex, allocatable :: psi(:), psi0(:), chi(:), &
-       & psi_old(:) ! psi_old is wavefunction in real orthonormal basis
+  double complex, allocatable :: psi(:,:), psi0(:,:), chi(:,:), &
+       & psi_old(:,:), work(:) ! psi_old is wavefunction in real orthonormal basis
   double precision, allocatable :: ham(:,:), tkin(:,:), &
-       & vpot(:), work(:)
+       & vpot(:)
   double precision, external :: dznrm2
   double complex, external :: scalar
   double precision, external :: xval, variance, pval, pvar
@@ -33,8 +33,8 @@ program tdse
   open(unit = 69, file = "psi_values")
   
   !! Allocating higher order tensors
-  allocate (psi(n),psi0(n),psi_old(n),ham(2,n),tkin(2,n),vpot(n), &
-       & work(3*n),chi(n))
+  allocate (psi(n,2),psi0(n,2),psi_old(n,2),ham(2,n),tkin(2,n),vpot(n), &
+       & work(n),chi(n,2))
   ! Remove ham, tkin, and vpot in the future
   ! Rename psi_old to hpsi in the future
   
@@ -44,8 +44,9 @@ program tdse
   psi0_loop: do i = 1, n
      xtemp = dble(i)*h - 1d0 - x0
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
-     psi0(i) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
-     ! psi0(i) = dcmplx(1d0,0d0) ! debug wavepacket
+     psi0(i,1) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
+     psi0(i,2) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(-p0*xtemp))
+     ! psi0(i,1) = dcmplx(1d0,0d0) ! debug wavepacket
   end do psi0_loop
   
   !! Normalizing and saving initial wavepacket
@@ -98,6 +99,13 @@ program tdse
      print *, 'Norm before propagation =', psinorm
      call ham_psi(n, h, psi, psi_old)
      call propagate_trap(n, h, psi, tau, chi, psi_old)
+     call propagate_trap(n, h, psi, -tau, work, psi_old)
+!!$     do i = 1, n/2
+!!$        work(i) = temp
+!!$        work(i) = work(n-i+1) 
+!!$        work(n-i+1) = temp
+!!$     end do
+!!$     chi = 0.5d0*(conjg(work)+chi)
 !!$     psi_old = psi ! save old wavefunction
      psinorm = dble(sqrt(scalar(n,h,chi,chi))) ! renormalization
      psi = chi/psinorm ! use result as new input in next iteration
@@ -232,7 +240,7 @@ end function pvar
 
 
 subroutine propagate(n, h, psi, tau, chi)
-  !------------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
   !------------------------------------------------------------------------------
   !
   !------------------------------------------------------------------------------
