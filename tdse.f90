@@ -141,8 +141,9 @@ program tdse
      !! Testing position and variance after propagation
      print *, 'Absolute time =', t + tau*itsteps ! current time
      print *, 'Current time step =', itsteps
-     psinorm = dble(sqrt(scalar(n,h,psi,psi)))
-!!$     print *, 'Norm after propagation =', psinorm ! Commented out bc we forced renormalization
+     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))
+     
+     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
      print *, 'Wavepacket position =',xval(n,h,psi),xval(n,h,psi(1,2)) ! intial position expectation value
      print *, 'Wavepacket position uncertainty =',variance(n,h,psi)&
           &,variance(n,h,psi(1,2)) ! initial position uncertainty
