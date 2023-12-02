@@ -1,5 +1,5 @@
 program tdse
-  implicit none
+  implicit none  
   !! Declaring variables
   integer, parameter :: idebug = 1
   integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
@@ -688,3 +688,59 @@ subroutine propagate_green(n, h, psi, tau, chi)
 !!$  deallocate()
 
 end subroutine propagate_green
+
+subroutine propagate_fft(n, h, psi, tau, chi)
+  !------------------------------------------------------------------------------
+  !------------------------------------------------------------------------------
+  !
+  !------------------------------------------------------------------------------
+  ! Description: 
+  !------------------------------------------------------------------------------
+  !
+  implicit none
+  !------------------------------------------------------------------------------
+  ! Input Parameters
+  !------------------------------------------------------------------------------
+  integer, intent(in):: n
+  double precision, intent(in):: h, tau
+  double complex, intent(in):: psi(n)
+  !------------------------------------------------------------------------------
+  ! Output Parameters
+  !------------------------------------------------------------------------------
+  double complex, intent(out):: chi(n)
+  !------------------------------------------------------------------------------
+  ! Input/Output Parameters
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  !  Local Variables
+  !------------------------------------------------------------------------------
+  use mkl_dfti
+  integer :: i, j, istatus
+  type(dfti_descriptor), pointer :: My_Desc1_Handle, My_Desc2_Handle
+  double precision :: tmp
+  double complex, allocatable :: psifft(:), tmpfft(:)
+  !------------------------------------------------------------------------------
+  !  Local Constants 
+  !------------------------------------------------------------------------------
+
+  allocate(psifft(n),tmpfft(n))
+  
+  istatus = DftiCreateDescriptor(My_Desc1_Handle, DFTI_DOUBLE, DFTI_COMPLEX, 1, n)
+  istatus = DftiSetValue( My_Desc1_Handle, DFTI_PLACEMENT, DFTI_NOT_INPLACE)
+  istatus = DftiCommitDescriptor( My_Desc1_Handle )
+  istatus = DftiComputeForward( My_Desc1_Handle, psi, tmpfft ) ! forward FFT
+  istatus = DftiComputeBackward( My_Desc1_Handle, psi, psifft ) ! backward FFT
+
+  psifft = 1d0/sqrt(cmplx(0d0,2d0))*(tmpfft - psifft)
+  do i = 1,n
+     tmp = 2d0*(cos(pi*dble(i)/(dble(n+1))))**2d0 ! energy eigenvalue
+     psifft(i) = psifft(i)*exp(cmplx(0d0,-tmp*tau)) ! propagated in energy basis
+  end do
+  
+  istatus = DftiComputeBackward( My_Desc1_Handle, psifft, chi ) ! backward FFT  
+  istatus = DftiFreeDescriptor(My_Desc1_Handle)
+! result is given by {X_out(1),X_out(2),...,X_out(32)}
+
+  deallocate(psifft,tmpfft)
+end subroutine propagate_fft
