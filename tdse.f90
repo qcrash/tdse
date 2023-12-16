@@ -111,14 +111,13 @@ program tdse
 !!$     call propagate_ab(n, h, psi, psi_old, tau, chi)     
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
      print *, 'Norm before forward propagation =', psinorm
-     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
-     print *, 'Norm before backward propagation =', psinorm
+!!$     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
+!!$     print *, 'Norm before backward propagation =', psinorm
 !!$     call ham_psi(n, h, psi, psi_old)
 !!$     call ham_psi(n, h, psi(1,2), psi_old(1,2))
 !!$     call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     call propagate_trap(n, h, psi(1,2), -tau, chi(1,2), psi_old(1,2))
-     call propagate_green(n, h, psi, tau, chi)
-     call propagate_green(n, h, psi(1,2), -tau, chi(1,2))
+     call propagate_fft(n, h, psi, tau, chi)
 !!$     do i = 1, n/2
 !!$        work(i) = temp
 !!$        work(i) = work(n-i+1) 
@@ -130,7 +129,7 @@ program tdse
 !!$     psinorm = dble(sqrt(scalar(n,h,chi,chi))) ! renormalization
      psi(:,1) = chi(:,1)!/psinorm ! use result as new input in next iteration
 !!$     psinorm = dble(sqrt(scalar(n,h,chi(1,2),chi(1,2)))) ! renormalization
-     psi(:,2) = chi(:,2)!/psinorm ! use result as new input in next iteration
+!!$     psi(:,2) = chi(:,2)!/psinorm ! use result as new input in next iteration
      
 !!$     do i = 1, n
 !!$        print *, 'Probability amplitude =', abs(psi(i))**2
@@ -697,6 +696,7 @@ subroutine propagate_fft(n, h, psi, tau, chi)
   ! Description: 
   !------------------------------------------------------------------------------
   !
+  use mkl_dfti
   implicit none
   !------------------------------------------------------------------------------
   ! Input Parameters
@@ -715,32 +715,30 @@ subroutine propagate_fft(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   !  Local Variables
   !------------------------------------------------------------------------------
-  use mkl_dfti
   integer :: i, j, istatus
   type(dfti_descriptor), pointer :: My_Desc1_Handle, My_Desc2_Handle
   double precision :: tmp
-  double complex, allocatable :: psifft(:), tmpfft(:)
+  double precision, parameter :: pi = 4d0*atan(1d0)
+  double complex, allocatable :: tmpfft(:)
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
 
-  allocate(psifft(n),tmpfft(n))
+  allocate(tmpfft(n))
   
   istatus = DftiCreateDescriptor(My_Desc1_Handle, DFTI_DOUBLE, DFTI_COMPLEX, 1, n)
-  istatus = DftiSetValue( My_Desc1_Handle, DFTI_PLACEMENT, DFTI_NOT_INPLACE)
-  istatus = DftiCommitDescriptor( My_Desc1_Handle )
-  istatus = DftiComputeForward( My_Desc1_Handle, psi, tmpfft ) ! forward FFT
-  istatus = DftiComputeBackward( My_Desc1_Handle, psi, psifft ) ! backward FFT
+  istatus = DftiSetValue(My_Desc1_Handle, DFTI_PLACEMENT, DFTI_NOT_INPLACE)
+  istatus = DftiCommitDescriptor(My_Desc1_Handle)
+  istatus = DftiComputeForward(My_Desc1_Handle, psi, tmpfft) ! forward FFT
 
-  psifft = 1d0/sqrt(cmplx(0d0,2d0))*(tmpfft - psifft)
   do i = 1,n
-     tmp = 2d0*(cos(pi*dble(i)/(dble(n+1))))**2d0 ! energy eigenvalue
-     psifft(i) = psifft(i)*exp(cmplx(0d0,-tmp*tau)) ! propagated in energy basis
+     tmp = sin(2d0*pi*dble(i-1)/dble(n))/h ! momentum eigenvalue
+     tmpfft(i) = tmpfft(i)/dble(n)*exp(cmplx(0d0,-tmp*tmp*tau*0.5d0)) ! propagated in energy basis
   end do
   
-  istatus = DftiComputeBackward( My_Desc1_Handle, psifft, chi ) ! backward FFT  
+  istatus = DftiComputeBackward(My_Desc1_Handle, tmpfft, chi) ! backward FFT
   istatus = DftiFreeDescriptor(My_Desc1_Handle)
 ! result is given by {X_out(1),X_out(2),...,X_out(32)}
 
-  deallocate(psifft,tmpfft)
+  deallocate(tmpfft)
 end subroutine propagate_fft
