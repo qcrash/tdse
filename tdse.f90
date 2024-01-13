@@ -228,17 +228,19 @@ double precision function pval(n,h,idebug,psi)
   double complex :: tmp
   integer :: igrid
 
-  pval = aimag(conjg(psi(1))*psi(2))/(2d0*h) &
-       & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h) ! First and last point
-  do igrid = 2, n-1
+!!$  pval = aimag(conjg(psi(1))*psi(2))/(2d0*h) &
+!!$       & - aimag(conjg(psi(n))*psi(n-1))/(2d0*h) ! First and last point
+  pval = 0d0
+  do igrid = 1, n
      pval = pval + aimag(conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1))/(2d0*h))
   end do 
   pval = pval*h
   
   if (idebug == 1) then
-     tmp = conjg(psi(1))*psi(2)/(2d0*h) &
-          & - conjg(psi(n))*psi(n-1)/(2d0*h) ! First and last point
-     do igrid = 2, n-1
+!!$     tmp = conjg(psi(1))*psi(2)/(2d0*h) &
+!!$          & - conjg(psi(n))*psi(n-1)/(2d0*h) ! First and last point
+     tmp = 0d0
+     do igrid = 1, n
         tmp = tmp + conjg(psi(igrid))*(psi(igrid+1)-psi(igrid-1))/(2d0*h)
      end do
      print *, 'Brute force momentum =',tmp*h
@@ -256,9 +258,10 @@ double precision function pvar(n,h,psi)
   
   ! var^2 = expt[(p-expt(p))^2] = (abs(p*psi - expt(p)*psi))^2
   tmp = pval(n,h,0,psi)
-  pvar = (abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
-       & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2 ! First and last point
-  do igrid = 2, n-1
+!!$  pvar = (abs((psi(2))/(2d0*h) - tmp*psi(1)))**2 &
+!!$       & + (abs((-psi(n-1))/(2d0*h) - tmp*psi(n)))**2 ! First and last point
+  pvar = 0d0
+  do igrid = 1, n
      pvar = pvar + (abs(((psi(igrid+1)-psi(igrid-1)))/(2d0*h) - tmp*psi(igrid)))**2
   end do
   pvar = sqrt(pvar*h)
@@ -717,7 +720,7 @@ subroutine propagate_fft(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   integer :: i, j, istatus
   type(dfti_descriptor), pointer :: My_Desc1_Handle, My_Desc2_Handle
-  double precision :: tmp
+  double precision :: tmp, tmp_expt
   double precision, parameter :: pi = 4d0*atan(1d0)
   double complex, allocatable :: tmpfft(:)
   !------------------------------------------------------------------------------
@@ -731,14 +734,20 @@ subroutine propagate_fft(n, h, psi, tau, chi)
   istatus = DftiCommitDescriptor(My_Desc1_Handle)
   istatus = DftiComputeForward(My_Desc1_Handle, psi, tmpfft) ! forward FFT
 
+  tmp_expt = 0d0
+!  
   do i = 1,n
      tmp = sin(2d0*pi*dble(i-1)/dble(n))/h ! momentum eigenvalue
+     tmp_expt = tmp_expt + abs(tmpfft(i))**2*tmp ! momentum expectation
+     ! value in energy basis
      tmpfft(i) = tmpfft(i)/dble(n)*exp(cmplx(0d0,-tmp*tmp*tau*0.5d0)) ! propagated in energy basis
   end do
+
+  
   
   istatus = DftiComputeBackward(My_Desc1_Handle, tmpfft, chi) ! backward FFT
   istatus = DftiFreeDescriptor(My_Desc1_Handle)
 ! result is given by {X_out(1),X_out(2),...,X_out(32)}
-
+  print *, 'momentum expectation value in energy basis =', h*tmp_expt/dble(n)
   deallocate(tmpfft)
 end subroutine propagate_fft
