@@ -111,13 +111,14 @@ program tdse
 !!$     call propagate_ab(n, h, psi, psi_old, tau, chi)     
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
      print *, 'Norm before forward propagation =', psinorm
-!!$     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
-!!$     print *, 'Norm before backward propagation =', psinorm
+     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
+     print *, 'Norm before backward propagation =', psinorm
 !!$     call ham_psi(n, h, psi, psi_old)
 !!$     call ham_psi(n, h, psi(1,2), psi_old(1,2))
 !!$     call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     call propagate_trap(n, h, psi(1,2), -tau, chi(1,2), psi_old(1,2))
-     call propagate_fft(n, h, psi, tau, chi)
+     call propagate_convert(n, h, psi, tau, chi)
+     call propagate_convert(n, h, psi(1,2), tau, chi(1,2))
 !!$     do i = 1, n/2
 !!$        work(i) = temp
 !!$        work(i) = work(n-i+1) 
@@ -129,7 +130,7 @@ program tdse
 !!$     psinorm = dble(sqrt(scalar(n,h,chi,chi))) ! renormalization
      psi(:,1) = chi(:,1)!/psinorm ! use result as new input in next iteration
 !!$     psinorm = dble(sqrt(scalar(n,h,chi(1,2),chi(1,2)))) ! renormalization
-!!$     psi(:,2) = chi(:,2)!/psinorm ! use result as new input in next iteration
+     psi(:,2) = chi(:,2)!/psinorm ! use result as new input in next iteration
      
 !!$     do i = 1, n
 !!$        print *, 'Probability amplitude =', abs(psi(i))**2
@@ -140,9 +141,8 @@ program tdse
      !! Testing position and variance after propagation
      print *, 'Absolute time =', t + tau*itsteps ! current time
      print *, 'Current time step =', itsteps
-     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))
-     
-     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
+!!$     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))     
+!!$     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
      print *, 'Wavepacket position =',xval(n,h,psi),xval(n,h,psi(1,2)) ! intial position expectation value
      print *, 'Wavepacket position uncertainty =',variance(n,h,psi)&
           &,variance(n,h,psi(1,2)) ! initial position uncertainty
@@ -751,3 +751,76 @@ subroutine propagate_fft(n, h, psi, tau, chi)
   print *, 'momentum expectation value in energy basis =', h*tmp_expt/dble(n)
   deallocate(tmpfft)
 end subroutine propagate_fft
+
+subroutine propagate_convert(n, h, psi, tau, chi)
+  !------------------------------------------------------------------------------
+  !------------------------------------------------------------------------------
+  !
+  !------------------------------------------------------------------------------
+  ! Description: 
+  !------------------------------------------------------------------------------
+  !
+  implicit none
+  !------------------------------------------------------------------------------
+  ! Input Parameters
+  !------------------------------------------------------------------------------
+  integer, intent(in):: n
+  double precision, intent(in):: h, tau
+  double complex, intent(in):: psi(n)
+  !------------------------------------------------------------------------------
+  ! Output Parameters
+  !------------------------------------------------------------------------------
+  double complex, intent(out):: chi(n)
+  !------------------------------------------------------------------------------
+  ! Input/Output Parameters
+  !------------------------------------------------------------------------------
+
+  !------------------------------------------------------------------------------
+  !  Local Variables
+  !------------------------------------------------------------------------------
+  integer :: i, j, istatus
+  double precision :: tmp
+  double precision, parameter :: pi = 4d0*atan(1d0)
+  double complex, allocatable :: tmppsi(:)
+  !------------------------------------------------------------------------------
+  !  Local Constants 
+  !------------------------------------------------------------------------------
+
+  allocate(tmppsi(n))
+
+  ! Applying eigenvector matrix of momentum operator (transform to
+  ! momentum basis)
+  chi = 0d0
+  do i = 1,n
+     do j = 1,i-1
+        tmp = sin(dble(i*j)*pi/dble(n+1))
+        chi(i) = chi(i) + tmp*psi(j)
+        chi(j) = chi(j) + tmp*psi(i)
+     end do
+     chi(i) = chi(i) + sin(dble(i*i)*pi/dble(n+1))*psi(i)
+  end do
+  
+  do i = 1,n
+     tmp = cos(pi*dble(i)/dble(n+1))/h ! momentum eigenvalue
+     tmppsi(i) = chi(i)*exp(cmplx(0d0,-tmp*tmp*tau*0.5d0)) ! propagated in
+     ! momentum basis
+  end do
+
+  ! Applying eigenvector matrix of momentum operator (transform to
+  ! position basis)
+  chi = 0d0
+  do i = 1,n
+     do j = 1,i-1
+        tmp = sin(dble(i*j)*pi/dble(n+1))
+        chi(i) = chi(i) + tmp*tmppsi(j)
+        chi(j) = chi(j) + tmp*tmppsi(i)
+     end do
+     chi(i) = chi(i) + sin(dble(i*i)*pi/dble(n+1))*tmppsi(i)
+  end do
+  
+  tmp = 2d0/dble(n+1) ! multiply by prefactor of eigenvector matrix
+  ! element twice
+  chi = chi*tmp
+  
+  deallocate(tmppsi)
+end subroutine propagate_convert
