@@ -46,9 +46,11 @@ program tdse
   !! Discretizing initial wavepacket
   ! Comment in the explicit formula for psi0 in the future
   imz0sq = 0.25d0*(p0/alpha)**2
+  print *, 'imz0sq =',imz0sq
   psi0_loop: do i = 1, n
      xtemp = dble(i)*h - 1d0 - x0
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
+     print *, 'exptemp =', exptemp
      psi0(i,1) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
      psi0(i,2) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(-p0*xtemp))
      ! psi0(i,1) = dcmplx(1d0,0d0) ! debug wavepacket
@@ -82,8 +84,8 @@ program tdse
   print *, 'Initial wavepacket momentum =',pval(n,h,0,psi0),pval(n,h,0,psi0(1,2)) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0)&
        &,pvar(n,h,psi0(1,2)) ! initial momentum uncertainty
-  print *, 'Initial wavepacket kinetic energy =',(pvar(n,h,psi0)&
-       &+(pval(n,h,0,psi0))**2)/2d0,(pvar(n,h,psi0(1,2))+(pval(n,h,0,psi0(1,2)))**2)/2d0
+  print *, 'Initial wavepacket kinetic energy =',(pvar(n,h,psi0)**2&
+       & + pval(n,h,0,psi0)**2)/2d0,(pvar(n,h,psi0(1,2))**2 + pval(n,h,0,psi0(1,2))**2)/2d0
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h&
        &,psi0),variance(n,h,psi0(1,2))*pvar(n,h,psi0(1,2)) ! must be greater than 1/2
   print *
@@ -159,8 +161,8 @@ program tdse
      print *, 'Wavepacket momentum =',pval(n,h,0,psi),pval(n,h,0,psi(1,2)) ! initial momentum expectation value
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi),pvar(n&
           &,h,psi(1,2)) ! initial momentum uncertainty
-     print *, 'Wavepacket kinetic energy =',(pvar(n,h,psi)+(pval(n,h,0&
-          &,psi))**2)/2d0,(pvar(n,h,psi(1,2))+(pval(n,h,0,psi(1,2)))**2)/2d0
+     print *, 'Wavepacket kinetic energy =',(pvar(n,h,psi)**2 + pval(n,h,0&
+          &,psi)**2)/2d0,(pvar(n,h,psi(1,2))**2 + pval(n,h,0,psi(1,2))**2)/2d0
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi)&
           &,variance(n,h,psi(1,2))*pvar(n,h,psi(1,2)) ! must be greater than 1/2
      print *
