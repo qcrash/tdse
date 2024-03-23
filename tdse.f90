@@ -4,9 +4,8 @@ program tdse
   integer, parameter :: idebug = 1
   integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
   double precision :: h, psinorm, tau, t ! grid spacing, time step, time param
-  double precision :: hinv, imz0sq, xtemp, exptemp ! temp vars
-  double precision, parameter :: x0 = 0d0, p0 = 0.3d0, alpha = 1000d0, &
-       & pi = 4d0*atan(1d0)
+  double precision :: hinv, imz0sq, xtemp, exptemp, x0, p0, alpha ! temp vars
+  double precision, parameter :: pi = 4d0*atan(1d0)
   double complex :: temp
   double complex, allocatable :: psi(:,:), psi0(:,:), chi(:,:), &
        & psi_old(:,:), work(:) ! psi_old is wavefunction in real orthonormal basis
@@ -29,6 +28,14 @@ program tdse
   read (*,*) tau
   t = 0d0
 
+  !! Initialize wavepacket parameters
+  print *, 'Initial wavepacket position ='
+  read (*,*) x0
+  print *, 'Initial wavepacket momentum ='
+  read (*,*) p0
+  print *, 'Initial wavepacket width ='
+  read (*,*) alpha
+  
   !! Open file psi_values on unit 69
   open(unit = 69, file = "psi_values")
   
