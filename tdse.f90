@@ -14,6 +14,7 @@ program tdse
   double precision, external :: dznrm2
   double complex, external :: scalar
   double precision, external :: xval, variance, pval, pvar
+  character*9 :: filename
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -35,10 +36,7 @@ program tdse
   read (*,*) p0
   print *, 'Initial wavepacket width ='
   read (*,*) alpha
-  
-  !! Open file psi_values on unit 69
-  open(unit = 69, file = "psi_values")
-  
+    
   !! Allocating higher order tensors
   allocate (psi(n,2),psi0(n,2),psi_old(n,2),ham(2,n),tkin(2,n),vpot(n), &
        & work(n),chi(n,2))
@@ -89,7 +87,11 @@ program tdse
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h&
        &,psi0),variance(n,h,psi0(1,2))*pvar(n,h,psi0(1,2)) ! must be greater than 1/2
   print *
+
+  write (filename, "(a4,i0)") "psi_", 1
+  open(69, file = filename)
   call dump_psi(n, h, 69, psi0)
+  close(69)
   
 !!$  !! Defining Hamiltonian operator
 !!$  vpot = 0d0 ! local potential at grid points
@@ -118,13 +120,14 @@ program tdse
 !!$     call propagate_ab(n, h, psi, psi_old, tau, chi)     
      psinorm = dble(sqrt(scalar(n,h,psi,psi)))
      print *, 'Norm before forward propagation =', psinorm
-!!$     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
-!!$     print *, 'Norm before backward propagation =', psinorm
+     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
+     print *, 'Norm before backward propagation =', psinorm
 !!$     call ham_psi(n, h, psi, psi_old)
 !!$     call ham_psi(n, h, psi(1,2), psi_old(1,2))
 !!$     call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     call propagate_trap(n, h, psi(1,2), -tau, chi(1,2), psi_old(1,2))
-     call propagate_fft(n, h, psi, tau, chi)
+     call propagate_convert(n, h, psi, tau, chi)
+     call propagate_convert(n, h, psi(1,2), tau, chi(1,2))
 !!$     do i = 1, n/2
 !!$        work(i) = temp
 !!$        work(i) = work(n-i+1) 
@@ -136,7 +139,7 @@ program tdse
 !!$     psinorm = dble(sqrt(scalar(n,h,chi,chi))) ! renormalization
      psi(:,1) = chi(:,1)!/psinorm ! use result as new input in next iteration
 !!$     psinorm = dble(sqrt(scalar(n,h,chi(1,2),chi(1,2)))) ! renormalization
-!!$     psi(:,2) = chi(:,2)!/psinorm ! use result as new input in next iteration
+     psi(:,2) = chi(:,2)!/psinorm ! use result as new input in next iteration
      
 !!$     do i = 1, n
 !!$        print *, 'Probability amplitude =', abs(psi(i))**2
@@ -147,9 +150,8 @@ program tdse
      !! Testing position and variance after propagation
      print *, 'Absolute time =', t + tau*itsteps ! current time
      print *, 'Current time step =', itsteps
-     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))
-     
-     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
+!!$     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))     
+!!$     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
      print *, 'Wavepacket position =',xval(n,h,psi),xval(n,h,psi(1,2)) ! intial position expectation value
      print *, 'Wavepacket position uncertainty =',variance(n,h,psi)&
           &,variance(n,h,psi(1,2)) ! initial position uncertainty
@@ -161,11 +163,16 @@ program tdse
           &,psi))**2)/2d0,(pvar(n,h,psi(1,2))+(pval(n,h,0,psi(1,2)))**2)/2d0
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi)&
           &,variance(n,h,psi(1,2))*pvar(n,h,psi(1,2)) ! must be greater than 1/2
-     print *     
+     print *
+     
+     
+     write (filename, "(a4,i0)") "psi_", itsteps+1
+     open(69, file = filename)
+     call dump_psi(n, h, 69, psi)
+     close(69)
   end do
   
   !! Deallocation of higher order tensors
-  close(unit = 69, status = "keep") ! Close unit 69
   deallocate (psi,psi0,psi_old,ham,tkin,vpot,work,chi)
 end program tdse
 
@@ -630,13 +637,18 @@ subroutine dump_psi(n, h, i_unit, psi)
 !  Local Variables
 !------------------------------------------------------------------------------
   integer :: igrid
+  double precision :: tmp1, tmp2
 !------------------------------------------------------------------------------
 !  Local Constants 
 !------------------------------------------------------------------------------
   ! second derivative loop
   do igrid = 1, n
+     tmp1 = real(psi(igrid))
+     tmp2 = aimag(psi(igrid))
+     if (abs(tmp1) < 1d-10) tmp1 = 0d0
+     if (abs(tmp2) < 1d-10) tmp2 = 0d0
      write(i_unit,"(f16.10,2(2x, g24.17))") (h*dble(igrid) - 1d0),&
-          & real(psi(igrid)), aimag(psi(igrid))
+          & tmp1, tmp2
   end do
 end subroutine dump_psi
 
@@ -697,8 +709,69 @@ subroutine propagate_green(n, h, psi, tau, chi)
 !!$  deallocate()
 
 end subroutine propagate_green
+!!$
+!!$subroutine propagate_fft(n, h, psi, tau, chi)
+!!$  !------------------------------------------------------------------------------
+!!$  !------------------------------------------------------------------------------
+!!$  !
+!!$  !------------------------------------------------------------------------------
+!!$  ! Description: 
+!!$  !------------------------------------------------------------------------------
+!!$  !
+!!$  use mkl_dfti
+!!$  implicit none
+!!$  !------------------------------------------------------------------------------
+!!$  ! Input Parameters
+!!$  !------------------------------------------------------------------------------
+!!$  integer, intent(in):: n
+!!$  double precision, intent(in):: h, tau
+!!$  double complex, intent(in):: psi(n)
+!!$  !------------------------------------------------------------------------------
+!!$  ! Output Parameters
+!!$  !------------------------------------------------------------------------------
+!!$  double complex, intent(out):: chi(n)
+!!$  !------------------------------------------------------------------------------
+!!$  ! Input/Output Parameters
+!!$  !------------------------------------------------------------------------------
+!!$
+!!$  !------------------------------------------------------------------------------
+!!$  !  Local Variables
+!!$  !------------------------------------------------------------------------------
+!!$  integer :: i, j, istatus
+!!$  type(dfti_descriptor), pointer :: My_Desc1_Handle, My_Desc2_Handle
+!!$  double precision :: tmp, tmp_expt
+!!$  double precision, parameter :: pi = 4d0*atan(1d0)
+!!$  double complex, allocatable :: tmpfft(:)
+!!$  !------------------------------------------------------------------------------
+!!$  !  Local Constants 
+!!$  !------------------------------------------------------------------------------
+!!$
+!!$  allocate(tmpfft(n))
+!!$  
+!!$  istatus = DftiCreateDescriptor(My_Desc1_Handle, DFTI_DOUBLE, DFTI_COMPLEX, 1, n)
+!!$  istatus = DftiSetValue(My_Desc1_Handle, DFTI_PLACEMENT, DFTI_NOT_INPLACE)
+!!$  istatus = DftiCommitDescriptor(My_Desc1_Handle)
+!!$  istatus = DftiComputeForward(My_Desc1_Handle, psi, tmpfft) ! forward FFT
+!!$
+!!$  tmp_expt = 0d0
+!!$!  
+!!$  do i = 1,n
+!!$     tmp = sin(2d0*pi*dble(i-1)/dble(n))/h ! momentum eigenvalue
+!!$     tmp_expt = tmp_expt + abs(tmpfft(i))**2*tmp ! momentum expectation
+!!$     ! value in energy basis
+!!$     tmpfft(i) = tmpfft(i)/dble(n)*exp(cmplx(0d0,-tmp*tmp*tau*0.5d0)) ! propagated in energy basis
+!!$  end do
+!!$
+!!$  
+!!$  
+!!$  istatus = DftiComputeBackward(My_Desc1_Handle, tmpfft, chi) ! backward FFT
+!!$  istatus = DftiFreeDescriptor(My_Desc1_Handle)
+!!$! result is given by {X_out(1),X_out(2),...,X_out(32)}
+!!$  print *, 'momentum expectation value in energy basis =', h*tmp_expt/dble(n)
+!!$  deallocate(tmpfft)
+!!$end subroutine propagate_fft
 
-subroutine propagate_fft(n, h, psi, tau, chi)
+subroutine propagate_convert(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
   !
@@ -706,7 +779,6 @@ subroutine propagate_fft(n, h, psi, tau, chi)
   ! Description: 
   !------------------------------------------------------------------------------
   !
-  use mkl_dfti
   implicit none
   !------------------------------------------------------------------------------
   ! Input Parameters
@@ -726,35 +798,48 @@ subroutine propagate_fft(n, h, psi, tau, chi)
   !  Local Variables
   !------------------------------------------------------------------------------
   integer :: i, j, istatus
-  type(dfti_descriptor), pointer :: My_Desc1_Handle, My_Desc2_Handle
-  double precision :: tmp, tmp_expt
+  double precision :: tmp
   double precision, parameter :: pi = 4d0*atan(1d0)
-  double complex, allocatable :: tmpfft(:)
+  double complex, allocatable :: tmppsi(:)
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
 
-  allocate(tmpfft(n))
-  
-  istatus = DftiCreateDescriptor(My_Desc1_Handle, DFTI_DOUBLE, DFTI_COMPLEX, 1, n)
-  istatus = DftiSetValue(My_Desc1_Handle, DFTI_PLACEMENT, DFTI_NOT_INPLACE)
-  istatus = DftiCommitDescriptor(My_Desc1_Handle)
-  istatus = DftiComputeForward(My_Desc1_Handle, psi, tmpfft) ! forward FFT
+  allocate(tmppsi(n))
 
-  tmp_expt = 0d0
-!  
+  ! Applying eigenvector matrix of momentum operator (transform to
+  ! momentum basis)
+  chi = 0d0
   do i = 1,n
-     tmp = sin(2d0*pi*dble(i-1)/dble(n))/h ! momentum eigenvalue
-     tmp_expt = tmp_expt + abs(tmpfft(i))**2*tmp ! momentum expectation
-     ! value in energy basis
-     tmpfft(i) = tmpfft(i)/dble(n)*exp(cmplx(0d0,-tmp*tmp*tau*0.5d0)) ! propagated in energy basis
+     do j = 1,i-1
+        tmp = sin(dble(i*j)*pi/dble(n+1))
+        chi(i) = chi(i) + tmp*psi(j)
+        chi(j) = chi(j) + tmp*psi(i)
+     end do
+     chi(i) = chi(i) + sin(dble(i*i)*pi/dble(n+1))*psi(i)
+  end do
+  
+  do i = 1,n
+     tmp = cos(pi*dble(i)/dble(n+1))/h ! momentum eigenvalue
+     tmppsi(i) = chi(i)*exp(cmplx(0d0,-tmp*tmp*tau*0.5d0)) ! propagated in
+     ! momentum basis
   end do
 
+  ! Applying eigenvector matrix of momentum operator (transform to
+  ! position basis)
+  chi = 0d0
+  do i = 1,n
+     do j = 1,i-1
+        tmp = sin(dble(i*j)*pi/dble(n+1))
+        chi(i) = chi(i) + tmp*tmppsi(j)
+        chi(j) = chi(j) + tmp*tmppsi(i)
+     end do
+     chi(i) = chi(i) + sin(dble(i*i)*pi/dble(n+1))*tmppsi(i)
+  end do
   
+  tmp = 2d0/dble(n+1) ! multiply by prefactor of eigenvector matrix
+  ! element twice
+  chi = chi*tmp
   
-  istatus = DftiComputeBackward(My_Desc1_Handle, tmpfft, chi) ! backward FFT
-  istatus = DftiFreeDescriptor(My_Desc1_Handle)
-! result is given by {X_out(1),X_out(2),...,X_out(32)}
-  print *, 'momentum expectation value in energy basis =', h*tmp_expt/dble(n)
-  deallocate(tmpfft)
-end subroutine propagate_fft
+  deallocate(tmppsi)
+end subroutine propagate_convert
