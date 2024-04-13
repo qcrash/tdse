@@ -5,7 +5,7 @@ program tdse
   integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
   double precision :: h, psinorm, tau, t ! grid spacing, time step, time param
   double precision :: hinv, imz0sq, xtemp, exptemp ! temp vars
-  double precision, parameter :: x0 = 0d0, p0 = 0.3d0, alpha = 1000d0, &
+  double precision, parameter :: x0 = 0d0, p0 = 3d0, alpha = 10d0, &
        & pi = 4d0*atan(1d0)
   double complex :: temp
   double complex, allocatable :: psi(:,:), psi0(:,:), chi(:,:), &
@@ -75,8 +75,8 @@ program tdse
   print *, 'Initial wavepacket momentum =',pval(n,h,0,psi0),pval(n,h,0,psi0(1,2)) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0)&
        &,pvar(n,h,psi0(1,2)) ! initial momentum uncertainty
-  print *, 'Initial wavepacket kinetic energy =',(pvar(n,h,psi0)&
-       &+(pval(n,h,0,psi0))**2)/2d0,(pvar(n,h,psi0(1,2))+(pval(n,h,0,psi0(1,2)))**2)/2d0
+  print *, 'Initial wavepacket kinetic energy =',( (pvar(n,h,psi0))**2&
+       &+ (pval(n,h,0,psi0))**2 )/2d0, ( (pvar(n,h,psi0(1,2)))**2+ (pval(n,h,0,psi0(1,2)))**2)/2d0
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h&
        &,psi0),variance(n,h,psi0(1,2))*pvar(n,h,psi0(1,2)) ! must be greater than 1/2
   print *
@@ -111,16 +111,15 @@ program tdse
   do itsteps = 1, ntsteps
 !!$     call propagate(n, h, psi, tau, chi)
 !!$     call propagate_ab(n, h, psi, psi_old, tau, chi)     
-     psinorm = dble(sqrt(scalar(n,h,psi,psi)))
-     print *, 'Norm before forward propagation =', psinorm
-     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
-     print *, 'Norm before backward propagation =', psinorm
+
+!!$     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
+!!$     print *, 'Norm before backward propagation =', psinorm
 !!$     call ham_psi(n, h, psi, psi_old)
 !!$     call ham_psi(n, h, psi(1,2), psi_old(1,2))
 !!$     call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     call propagate_trap(n, h, psi(1,2), -tau, chi(1,2), psi_old(1,2))
-     call propagate_convert(n, h, psi, tau, chi)
-     call propagate_convert(n, h, psi(1,2), tau, chi(1,2))
+     call propagate_convert(n, h, psi0, tau*itsteps, chi)
+     call propagate_convert(n, h, psi0(1,2), tau*itsteps, chi(1,2))
 !!$     do i = 1, n/2
 !!$        work(i) = temp
 !!$        work(i) = work(n-i+1) 
@@ -143,6 +142,8 @@ program tdse
      !! Testing position and variance after propagation
      print *, 'Absolute time =', t + tau*itsteps ! current time
      print *, 'Current time step =', itsteps
+     psinorm = dble(sqrt(scalar(n,h,psi,psi))) ! norm
+     print *, 'Norm =', psinorm
 !!$     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))     
 !!$     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
      print *, 'Wavepacket position =',xval(n,h,psi),xval(n,h,psi(1,2)) ! intial position expectation value
@@ -152,8 +153,8 @@ program tdse
      print *, 'Wavepacket momentum =',pval(n,h,0,psi),pval(n,h,0,psi(1,2)) ! initial momentum expectation value
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi),pvar(n&
           &,h,psi(1,2)) ! initial momentum uncertainty
-     print *, 'Wavepacket kinetic energy =',(pvar(n,h,psi)+(pval(n,h,0&
-          &,psi))**2)/2d0,(pvar(n,h,psi(1,2))+(pval(n,h,0,psi(1,2)))**2)/2d0
+     print *, 'Wavepacket kinetic energy =', ((pvar(n,h,psi))**2 + (pval(n,h,0&
+          &, psi))**2 )/2d0, ( (pvar(n,h,psi(1,2)))**2 + (pval(n,h,0,psi(1,2)))**2 )/2d0
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi)&
           &,variance(n,h,psi(1,2))*pvar(n,h,psi(1,2)) ! must be greater than 1/2
      print *
