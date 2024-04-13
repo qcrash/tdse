@@ -4,9 +4,8 @@ program tdse
   integer, parameter :: idebug = 1
   integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
   double precision :: h, psinorm, tau, t ! grid spacing, time step, time param
-  double precision :: hinv, imz0sq, xtemp, exptemp ! temp vars
-  double precision, parameter :: x0 = 0d0, p0 = 3d0, alpha = 10d0, &
-       & pi = 4d0*atan(1d0)
+  double precision :: hinv, imz0sq, xtemp, exptemp, x0, p0, alpha ! temp vars
+  double precision, parameter :: pi = 4d0*atan(1d0)
   double complex :: temp
   double complex, allocatable :: psi(:,:), psi0(:,:), chi(:,:), &
        & psi_old(:,:), work(:) ! psi_old is wavefunction in real orthonormal basis
@@ -29,7 +28,15 @@ program tdse
   print *, 'Size of time step ='
   read (*,*) tau
   t = 0d0
-  
+
+  !! Initialize wavepacket parameters
+  print *, 'Initial wavepacket position ='
+  read (*,*) x0
+  print *, 'Initial wavepacket momentum ='
+  read (*,*) p0
+  print *, 'Initial wavepacket width ='
+  read (*,*) alpha
+    
   !! Allocating higher order tensors
   allocate (psi(n,2),psi0(n,2),psi_old(n,2),ham(2,n),tkin(2,n),vpot(n), &
        & work(n),chi(n,2))
@@ -39,9 +46,11 @@ program tdse
   !! Discretizing initial wavepacket
   ! Comment in the explicit formula for psi0 in the future
   imz0sq = 0.25d0*(p0/alpha)**2
+  print *, 'imz0sq =',imz0sq
   psi0_loop: do i = 1, n
      xtemp = dble(i)*h - 1d0 - x0
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
+     print *, 'exptemp =', exptemp
      psi0(i,1) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
      psi0(i,2) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(-p0*xtemp))
      ! psi0(i,1) = dcmplx(1d0,0d0) ! debug wavepacket
@@ -75,8 +84,8 @@ program tdse
   print *, 'Initial wavepacket momentum =',pval(n,h,0,psi0),pval(n,h,0,psi0(1,2)) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0)&
        &,pvar(n,h,psi0(1,2)) ! initial momentum uncertainty
-  print *, 'Initial wavepacket kinetic energy =',( (pvar(n,h,psi0))**2&
-       &+ (pval(n,h,0,psi0))**2 )/2d0, ( (pvar(n,h,psi0(1,2)))**2+ (pval(n,h,0,psi0(1,2)))**2)/2d0
+  print *, 'Initial wavepacket kinetic energy =',(pvar(n,h,psi0)**2&
+       & + pval(n,h,0,psi0)**2)/2d0,(pvar(n,h,psi0(1,2))**2 + pval(n,h,0,psi0(1,2))**2)/2d0
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h&
        &,psi0),variance(n,h,psi0(1,2))*pvar(n,h,psi0(1,2)) ! must be greater than 1/2
   print *
@@ -153,8 +162,8 @@ program tdse
      print *, 'Wavepacket momentum =',pval(n,h,0,psi),pval(n,h,0,psi(1,2)) ! initial momentum expectation value
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi),pvar(n&
           &,h,psi(1,2)) ! initial momentum uncertainty
-     print *, 'Wavepacket kinetic energy =', ((pvar(n,h,psi))**2 + (pval(n,h,0&
-          &, psi))**2 )/2d0, ( (pvar(n,h,psi(1,2)))**2 + (pval(n,h,0,psi(1,2)))**2 )/2d0
+     print *, 'Wavepacket kinetic energy =',(pvar(n,h,psi)**2 + pval(n,h,0&
+          &,psi)**2)/2d0,(pvar(n,h,psi(1,2))**2 + pval(n,h,0,psi(1,2))**2)/2d0
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi)&
           &,variance(n,h,psi(1,2))*pvar(n,h,psi(1,2)) ! must be greater than 1/2
      print *
