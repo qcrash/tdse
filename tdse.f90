@@ -14,7 +14,7 @@ program tdse
   double precision, external :: dznrm2
   double complex, external :: scalar
   double precision, external :: xval, variance, pval, pvar
-  character*9 :: filename
+  character*15 :: filename
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -94,6 +94,11 @@ program tdse
   open(69, file = filename)
   call dump_psi(n, h, 69, psi0)
   close(69)
+
+  write(filename, "(a7,i0)") "wigner_", 1
+  open(70, file = filename)
+  call wigner_distr(n,h,70,psi,tau,chi)
+  close(70)
   
 !!$  !! Defining Hamiltonian operator
 !!$  vpot = 0d0 ! local potential at grid points
@@ -168,11 +173,15 @@ program tdse
           &,variance(n,h,psi(1,2))*pvar(n,h,psi(1,2)) ! must be greater than 1/2
      print *
      
-     
      write (filename, "(a4,i0)") "psi_", itsteps+1
      open(69, file = filename)
      call dump_psi(n, h, 69, psi)
      close(69)
+
+     write(filename, "(a7,i0)") "wigner_", itsteps+1
+     open(70, file = filename)
+     call wigner_distr(n,h,70,psi,tau,chi)
+     close(70)
   end do
   
   !! Deallocation of higher order tensors
@@ -844,7 +853,7 @@ subroutine propagate_convert(n, h, psi, tau, chi)
   deallocate(tmppsi)
 end subroutine propagate_convert
 
-subroutine wigner_distr(n, h, psi, tau, chi)
+subroutine wigner_distr(n, h, iunit, psi, tau, chi)
   !------------------------------------------------------------------------------
   !------------------------------------------------------------------------------
   !
@@ -859,7 +868,7 @@ subroutine wigner_distr(n, h, psi, tau, chi)
   !------------------------------------------------------------------------------
   ! Input Parameters
   !------------------------------------------------------------------------------
-  integer, intent(in):: n
+  integer, intent(in):: n, iunit
   double precision, intent(in):: h, tau
   double complex, intent(in):: psi(n)
   !------------------------------------------------------------------------------
@@ -877,15 +886,17 @@ subroutine wigner_distr(n, h, psi, tau, chi)
   double complex :: tmp
   double precision, parameter :: pi = 4d0*atan(1d0)
   double complex, allocatable :: w(:)
+  character :: fmt*40
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
 
   allocate(w(n))
 
-  open(unit = 70, file = "wigner")
-  do i = 1,n
-     do j = 1,n
+  write(fmt,*) "(f16.10,",2*n,"(2x, g24.17))"
+  print *,fmt
+  do i = 1,n ! x loop
+     do j = 1,n ! k loop
         tmp = dcmplx(0d0,0d0)
         do k = 1,min(i,n-i) ! xi loop
            tmp = tmp + conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi*k*j))
@@ -893,9 +904,9 @@ subroutine wigner_distr(n, h, psi, tau, chi)
         tmp = tmp*dble(h*2d0/pi)
         w(j) = tmp
      end do
-     write(70) (w(j), j = 1,n)
+     write(70,fmt) h*dble(i) - 1d0&
+          &,(real(w(j)), aimag(w(j)), j = 1,n)
   end do
-  close(unit = 70, status = "keep")
   
   deallocate(w)
 end subroutine wigner_distr
