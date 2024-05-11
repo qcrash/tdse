@@ -4,9 +4,8 @@ program tdse
   integer, parameter :: idebug = 1
   integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
   double precision :: h, psinorm, tau, t ! grid spacing, time step, time param
-  double precision :: hinv, imz0sq, xtemp, exptemp ! temp vars
-  double precision, parameter :: x0 = 0d0, p0 = 0.3d0, alpha = 1000d0, &
-       & pi = 4d0*atan(1d0)
+  double precision :: hinv, imz0sq, xtemp, exptemp, x0, p0, alpha ! temp vars
+  double precision, parameter :: pi = 4d0*atan(1d0)
   double complex :: temp
   double complex, allocatable :: psi(:,:), psi0(:,:), chi(:,:), &
        & psi_old(:,:), work(:) ! psi_old is wavefunction in real orthonormal basis
@@ -15,6 +14,7 @@ program tdse
   double precision, external :: dznrm2
   double complex, external :: scalar
   double precision, external :: xval, variance, pval, pvar
+  character*9 :: filename
   
   !! User-defined parameters
   print *, 'Number of grid points ='
@@ -29,9 +29,14 @@ program tdse
   read (*,*) tau
   t = 0d0
 
-  !! Open file psi_values on unit 69
-  open(unit = 69, file = "psi_values")
-  
+  !! Initialize wavepacket parameters
+  print *, 'Initial wavepacket position ='
+  read (*,*) x0
+  print *, 'Initial wavepacket momentum ='
+  read (*,*) p0
+  print *, 'Initial wavepacket width ='
+  read (*,*) alpha
+    
   !! Allocating higher order tensors
   allocate (psi(n,2),psi0(n,2),psi_old(n,2),ham(2,n),tkin(2,n),vpot(n), &
        & work(n),chi(n,2))
@@ -41,9 +46,11 @@ program tdse
   !! Discretizing initial wavepacket
   ! Comment in the explicit formula for psi0 in the future
   imz0sq = 0.25d0*(p0/alpha)**2
+  print *, 'imz0sq =',imz0sq
   psi0_loop: do i = 1, n
      xtemp = dble(i)*h - 1d0 - x0
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
+     print *, 'exptemp =', exptemp
      psi0(i,1) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
      psi0(i,2) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(-p0*xtemp))
      ! psi0(i,1) = dcmplx(1d0,0d0) ! debug wavepacket
@@ -77,12 +84,16 @@ program tdse
   print *, 'Initial wavepacket momentum =',pval(n,h,0,psi0),pval(n,h,0,psi0(1,2)) ! initial momentum expectation value
   print *, 'Initial wavepacket momentum uncertainty =',pvar(n,h,psi0)&
        &,pvar(n,h,psi0(1,2)) ! initial momentum uncertainty
-  print *, 'Initial wavepacket kinetic energy =',(pvar(n,h,psi0)&
-       &+(pval(n,h,0,psi0))**2)/2d0,(pvar(n,h,psi0(1,2))+(pval(n,h,0,psi0(1,2)))**2)/2d0
+  print *, 'Initial wavepacket kinetic energy =',(pvar(n,h,psi0)**2&
+       & + pval(n,h,0,psi0)**2)/2d0,(pvar(n,h,psi0(1,2))**2 + pval(n,h,0,psi0(1,2))**2)/2d0
   print *, 'Initial uncertainty product =',variance(n,h,psi0)*pvar(n,h&
        &,psi0),variance(n,h,psi0(1,2))*pvar(n,h,psi0(1,2)) ! must be greater than 1/2
   print *
+
+  write (filename, "(a4,i0)") "psi_", 1
+  open(69, file = filename)
   call dump_psi(n, h, 69, psi0)
+  close(69)
   
 !!$  !! Defining Hamiltonian operator
 !!$  vpot = 0d0 ! local potential at grid points
@@ -109,16 +120,15 @@ program tdse
   do itsteps = 1, ntsteps
 !!$     call propagate(n, h, psi, tau, chi)
 !!$     call propagate_ab(n, h, psi, psi_old, tau, chi)     
-     psinorm = dble(sqrt(scalar(n,h,psi,psi)))
-     print *, 'Norm before forward propagation =', psinorm
-     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
-     print *, 'Norm before backward propagation =', psinorm
+
+!!$     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
+!!$     print *, 'Norm before backward propagation =', psinorm
 !!$     call ham_psi(n, h, psi, psi_old)
 !!$     call ham_psi(n, h, psi(1,2), psi_old(1,2))
 !!$     call propagate_trap(n, h, psi, tau, chi, psi_old)
 !!$     call propagate_trap(n, h, psi(1,2), -tau, chi(1,2), psi_old(1,2))
-     call propagate_convert(n, h, psi, tau, chi)
-     call propagate_convert(n, h, psi(1,2), tau, chi(1,2))
+     call propagate_convert(n, h, psi0, tau*itsteps, chi)
+     call propagate_convert(n, h, psi0(1,2), tau*itsteps, chi(1,2))
 !!$     do i = 1, n/2
 !!$        work(i) = temp
 !!$        work(i) = work(n-i+1) 
@@ -141,6 +151,8 @@ program tdse
      !! Testing position and variance after propagation
      print *, 'Absolute time =', t + tau*itsteps ! current time
      print *, 'Current time step =', itsteps
+     psinorm = dble(sqrt(scalar(n,h,psi,psi))) ! norm
+     print *, 'Norm =', psinorm
 !!$     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))     
 !!$     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
      print *, 'Wavepacket position =',xval(n,h,psi),xval(n,h,psi(1,2)) ! intial position expectation value
@@ -150,15 +162,20 @@ program tdse
      print *, 'Wavepacket momentum =',pval(n,h,0,psi),pval(n,h,0,psi(1,2)) ! initial momentum expectation value
      print *, 'Wavepacket momentum uncertainty =',pvar(n,h,psi),pvar(n&
           &,h,psi(1,2)) ! initial momentum uncertainty
-     print *, 'Wavepacket kinetic energy =',(pvar(n,h,psi)+(pval(n,h,0&
-          &,psi))**2)/2d0,(pvar(n,h,psi(1,2))+(pval(n,h,0,psi(1,2)))**2)/2d0
+     print *, 'Wavepacket kinetic energy =',(pvar(n,h,psi)**2 + pval(n,h,0&
+          &,psi)**2)/2d0,(pvar(n,h,psi(1,2))**2 + pval(n,h,0,psi(1,2))**2)/2d0
      print *, 'Uncertainty product =',variance(n,h,psi)*pvar(n,h,psi)&
           &,variance(n,h,psi(1,2))*pvar(n,h,psi(1,2)) ! must be greater than 1/2
-     print *     
+     print *
+     
+     
+     write (filename, "(a4,i0)") "psi_", itsteps+1
+     open(69, file = filename)
+     call dump_psi(n, h, 69, psi)
+     close(69)
   end do
   
   !! Deallocation of higher order tensors
-  close(unit = 69, status = "keep") ! Close unit 69
   deallocate (psi,psi0,psi_old,ham,tkin,vpot,work,chi)
 end program tdse
 
@@ -620,13 +637,18 @@ subroutine dump_psi(n, h, i_unit, psi)
 !  Local Variables
 !------------------------------------------------------------------------------
   integer :: igrid
+  double precision :: tmp1, tmp2
 !------------------------------------------------------------------------------
 !  Local Constants 
 !------------------------------------------------------------------------------
   ! second derivative loop
   do igrid = 1, n
+     tmp1 = real(psi(igrid))
+     tmp2 = aimag(psi(igrid))
+     if (abs(tmp1) < 1d-10) tmp1 = 0d0
+     if (abs(tmp2) < 1d-10) tmp2 = 0d0
      write(i_unit,"(f16.10,2(2x, g24.17))") (h*dble(igrid) - 1d0),&
-          & real(psi(igrid)), aimag(psi(igrid))
+          & tmp1, tmp2
   end do
 end subroutine dump_psi
 
