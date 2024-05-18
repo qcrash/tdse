@@ -887,6 +887,7 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
   double precision, parameter :: pi = 4d0*atan(1d0)
   double complex, allocatable :: w(:)
   character :: fmt*40
+  double precision :: xi, eta
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
@@ -898,8 +899,11 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
   do i = 1,n ! x loop
      do j = 1,n ! k loop
         tmp = dcmplx(0d0,0d0)
+        eta = -1d0 + dble(2*j)/dble(n+1)
         do k = 1,min(i,n-i) ! xi loop
-           tmp = tmp + conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi*k*j))
+           xi = -1d0 + dble(2*k)/dble(n+1)
+           tmp = tmp + conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi&
+                &*xi*eta))
         end do
         tmp = tmp*dble(h*2d0/pi)
         w(j) = tmp
