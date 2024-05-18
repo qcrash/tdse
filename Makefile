@@ -1,8 +1,7 @@
-lectures := $(patsubst %.tex,%.pdf,$(wildcard lecture*.tex))
-assignments := $(patsubst %.tex,%.pdf,$(wildcard assignment*.tex))
 objects :=
 progs := tdse.f90
 progname := tdse
+MKLROOT := /modfac/apps/Intel/compilers_and_libraries_2020.1.217/linux/mkl
 
 # You want latexmk to *always* run, because make does not have all the info.
 # Also, include non-file targets in .PHONY so they are run regardless of any
@@ -11,7 +10,7 @@ progname := tdse
 
 # The first rule in a Makefile is the one executed by default ("make"). It
 # should always be the "all" rule, so that "make" and "make all" are identical.
-all: $(objects) $(progs)
+all: $(progname)
 
 # CUSTOM BUILD RULES
 
@@ -35,16 +34,8 @@ all: $(objects) $(progs)
 # -interaction=nonstopmode keeps the pdflatex backend from stopping at a
 # missing file reference and interactively asking you for an alternative.
 
-$(progs): %.f90
-	gfotran 
-
-$(assignments): %.pdf: %.tex
-	latexmk -lualatex -shell-escape $<
-
-syllabus.pdf: syllabus.tex
-	latexmk -lualatex $<
+$(progname): $(progs)
+	gfortran $< -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_gf_lp64.a $(MKLROOT)/lib/intel64/libmkl_sequential.a $(MKLROOT)/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl -o $(progname)
 
 clean:
-	latexmk -C
-	latexmk -C -outdir=handout
-	rm -f lecture*.nav lecture*.snm handout/*.nav handout/*.snm
+	rm -f *.o $(progname)
