@@ -900,11 +900,19 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
      do j = 1,n ! k loop
         tmp = dcmplx(0d0,0d0)
         eta = -1d0 + dble(2*j)/dble(n+1)
-        do k = 1,min(i,n-i) ! xi loop
+
+        do k = i + 1, n - i !xi loop
            xi = -1d0 + dble(2*k)/dble(n+1)
            tmp = tmp + conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi&
                 &*xi*eta))
         end do
+
+        do k = n - i, i + 1 !xi loop
+           xi = -1d0 + dble(2*k)/dble(n+1)
+           tmp = tmp + conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi&
+                &*xi*eta))
+        end do
+           
         tmp = tmp*dble(h*2d0/pi)
         w(j) = tmp
      end do
