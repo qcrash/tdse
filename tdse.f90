@@ -882,42 +882,43 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
   !------------------------------------------------------------------------------
   !  Local Variables
   !------------------------------------------------------------------------------
-  integer :: i, j, k, istatus
-  double complex :: tmp
+  integer :: i, j, k, istatus, kmax
+  double precision :: tmp
   double precision, parameter :: pi = 4d0*atan(1d0)
-  double complex, allocatable :: w(:)
-  character :: fmt*40
+  double precision, allocatable :: w(:)
+  character :: fmt*40, fmt0*40
   double precision :: xi, eta
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
 
   allocate(w(n))
-
-  write(fmt,*) "(f16.10,",2*n,"(2x, g24.17))"
-  print *,fmt
+  
+  write(fmt,*) "(f16.10,",n,"(2x, g24.17))"
+  write(fmt0,*) "(i10,",n,"(2x, f16.10))"
+  
+  write(70,fmt0) n+1, (h*dble(j) - 1d0, j =1, n)
   do i = 1,n ! x loop
      do j = 1,n ! k loop
-        tmp = dcmplx(0d0,0d0)
+        tmp = 0d0
         eta = -1d0 + dble(2*j)/dble(n+1)
 
-        do k = i + 1, n - i !xi loop
-           xi = -1d0 + dble(2*k)/dble(n+1)
-           tmp = tmp + conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi&
-                &*xi*eta))
-        end do
+        kmax = min(i, n+1-i) - 1
 
-        do k = n - i, i + 1 !xi loop
-           xi = -1d0 + dble(2*k)/dble(n+1)
-           tmp = tmp + conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi&
-                &*xi*eta))
+        do k = 1,kmax
+           xi = dble(2*k)/dble(n+1)
+           tmp = tmp + real(conjg(psi(i+k))*psi(i-k)*exp(dcmplx(0d0,2d0*pi&
+                &*xi*eta)))
         end do
+        
+        tmp = 2d0*tmp
+        tmp = tmp + real(psi(i))**2 + aimag(psi(i))**2
+        
            
-        tmp = tmp*dble(h*2d0/pi)
+        tmp = tmp*h*2d0/pi
         w(j) = tmp
      end do
-     write(70,fmt) h*dble(i) - 1d0&
-          &,(real(w(j)), aimag(w(j)), j = 1,n)
+     write(70,fmt) h*dble(i) - 1d0,(w(j), j = 1,n)
   end do
   
   deallocate(w)
