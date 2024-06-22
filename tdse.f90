@@ -894,7 +894,7 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
 
   allocate(w(n))
   
-  write(fmt,*) "(f16.10,",n,"(2x, g24.17))"
+  write(fmt,*) "(f16.10,",n,"(2x, f16.10))"
   write(fmt0,*) "(i10,",n,"(2x, f16.10))"
   
   write(70,fmt0) n+1, (h*dble(j) - 1d0, j =1, n)
