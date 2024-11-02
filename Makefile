@@ -1,11 +1,12 @@
-objects := dump_psi.o propagate.o scalar.o ham_psi.o propagate_fft.o\
+objects := dump_psi.o propagate.o scalar.o ham_psi.o \
 	segal_bargmann.o propagate_green.o propagate_ab.o\
 	propagate_trap.o variance.o propagate_central.o pval.o wigner.o\
 	propagate_convert.o pvar.o xval.o
+        #propagate_fft.o\
 sources := $(objects:.o=.f90)
 progname := tdse
 progs := $(progname).f90
-modules := mkl_dfti.mod
+modules := #mkl_dfti.mod
 modsources := $(modules:.mod=.f90)
 MKLROOT := /modfac/apps/Intel/compilers_and_libraries_2020.1.217/linux/mkl
 LDFLAGS := -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_gf_lp64.a $(MKLROOT)/lib/intel64/libmkl_sequential.a $(MKLROOT)/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
