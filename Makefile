@@ -8,8 +8,8 @@ progname := tdse
 progs := $(progname).f90
 modules := #mkl_dfti.mod
 modsources := $(modules:.mod=.f90)
-MKLROOT := /modfac/apps/Intel/compilers_and_libraries_2020.1.217/linux/mkl
-LDFLAGS := -Wl,--start-group $(MKLROOT)/lib/intel64/libmkl_gf_lp64.a $(MKLROOT)/lib/intel64/libmkl_sequential.a $(MKLROOT)/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+FFLAGS := -fdefault-integer-8  -m64  -I"${MKLROOT}/include"
+LDFLAGS := -m64  -Wl,--start-group ${MKLROOT}/lib/libmkl_gf_ilp64.a ${MKLROOT}/lib/libmkl_sequential.a ${MKLROOT}/lib/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
 
 # You want latexmk to *always* run, because make does not have all the info.
 # Also, include non-file targets in .PHONY so they are run regardless of any
@@ -43,10 +43,10 @@ $(progname): $(objects)
 	gfortran $(progs) $^ $(LDFLAGS) -o $(progname)
 
 $(objects): $(modules) $(sources)
-	gfortran -c $(subst .o,.f90,$@) -o $@
+	gfortran $(FFLAGS) -c $(subst .o,.f90,$@) -o $@
 
 $(modules): $(modsources)
-	gfortran -c $(subst .mod,.f90,$@)
+	gfortran $(FFLAGS) -c $(subst .mod,.f90,$@)
 
 clean:
 	rm -f $(objects) $(progname) $(modules)
