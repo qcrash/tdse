@@ -11,3 +11,5 @@ RUN apt-get update && apt-get install -y intel-oneapi-mkl-devel \
 FROM base AS compile
 COPY . /usr/src/qcrash
 WORKDIR /usr/src/qcrash
+SHELL ["/bin/bash", "-c"]
+RUN source /opt/intel/oneapi/setvars.sh && make clean && make

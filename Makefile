@@ -9,7 +9,7 @@ progs := $(progname).f90
 modules := #mkl_dfti.mod
 modsources := $(modules:.mod=.f90)
 FFLAGS := -fdefault-integer-8  -m64  -I"${MKLROOT}/include"
-LDFLAGS := -m64  -Wl,--start-group ${MKLROOT}/lib/libmkl_gf_ilp64.a ${MKLROOT}/lib/libmkl_sequential.a ${MKLROOT}/lib/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl
+LDFLAGS := -m64  -L${MKLROOT}/lib -Wl,--no-as-needed -lmkl_gf_ilp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
 
 # You want latexmk to *always* run, because make does not have all the info.
 # Also, include non-file targets in .PHONY so they are run regardless of any
