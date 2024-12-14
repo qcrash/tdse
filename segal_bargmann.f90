@@ -31,7 +31,7 @@ subroutine segal_bargmann(n, h, iunit, psi, tau, chi)
   double precision, parameter :: pi = 4d0*atan(1d0), sqpinv = 1d0&
        &/sqrt(pi), sqrt2 = sqrt(2d0)
   double complex, allocatable :: psi_bar(:,:)
-  character :: fmt*60, fmt0*40, fmt1*40
+  character :: fmt0*80, fmt1*80
   double precision :: xi, eta, upsilon
   double complex :: z, tmp
   !------------------------------------------------------------------------------
