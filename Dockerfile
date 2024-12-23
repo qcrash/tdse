@@ -20,6 +20,5 @@ COPY --from=compile /usr/src/qcrash/entrypoint.sh /usr/local/bin/
 #
 RUN useradd -m docker
 WORKDIR /home/docker
-RUN echo -e "source /opt/intel/oneapi/setvars.sh > /dev/null\nexport PATH=$PATH:/usr/src/qcrash" >> /home/docker/.bashrc
 ENTRYPOINT ["/usr/src/qcrash/entrypoint.sh"]
-CMD ["tdse"]
+CMD ["/bin/bash"]
