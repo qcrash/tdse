@@ -18,7 +18,7 @@ FROM compile AS run
 COPY --from=compile /usr/src/qcrash/tdse /usr/local/bin/
 COPY --from=compile /usr/src/qcrash/entrypoint.sh /usr/local/bin/
 #
-RUN useradd -m docker
+# RUN useradd -m docker
 WORKDIR /home/docker
 ENTRYPOINT ["/usr/src/qcrash/entrypoint.sh"]
 CMD ["/bin/bash"]
