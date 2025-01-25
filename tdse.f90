@@ -1,8 +1,7 @@
 program tdse
   implicit none  
   !! Declaring variables
-  integer, parameter :: idebug = 1
-  integer :: info, i, j, n, ntsteps, itsteps ! LAPACK status, loop vars, vector space dim
+  integer :: info, i, j, n, ntsteps, itsteps, idebug ! LAPACK status, loop vars, vector space dim
   double precision :: h, psinorm, tau, t ! grid spacing, time step, time param
   double precision :: hinv, imz0sq, xtemp, exptemp, x0, p0, alpha ! temp vars
   double precision, parameter :: pi = 4d0*atan(1d0)
@@ -14,28 +13,15 @@ program tdse
   double precision, external :: dznrm2
   double complex, external :: scalar
   double precision, external :: xval, variance, pval, pvar
-  character*15 :: filename
+  character(len=15) :: filename
+  character(len=20) :: mode
+  character(len=80) :: output
+
+  call getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
   
-  !! User-defined parameters
-  print *, 'Number of grid points ='
-  read (*,*) n ! Read number of grid points BETWEEN -1 and 1 (not including -1 and 1)
-  ! Include user prompts for x0, p0, alpha in the future
   h = 2d0/dble(n+1)
-
-  !! Initializing time variables
-  print *, 'Number of time steps ='
-  read (*,*) ntsteps
-  print *, 'Size of time step ='
-  read (*,*) tau
+ 
   t = 0d0
-
-  !! Initialize wavepacket parameters
-  print *, 'Initial wavepacket position ='
-  read (*,*) x0
-  print *, 'Initial wavepacket momentum ='
-  read (*,*) p0
-  print *, 'Initial wavepacket width ='
-  read (*,*) alpha
     
   !! Allocating higher order tensors
   allocate (psi(n,2),psi0(n,2),psi_old(n,2),ham(2,n),tkin(2,n),vpot(n), &
