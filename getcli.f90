@@ -18,7 +18,9 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
   !------------------------------------------------------------------------------
   ! External Functions
   !------------------------------------------------------------------------------
-
+  double precision, external :: check_arg_double
+  integer, external :: check_arg_int
+  character(len=40), external :: check_arg_char
   !------------------------------------------------------------------------------
   ! Input Parameters
   !------------------------------------------------------------------------------
@@ -37,11 +39,12 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
   !------------------------------------------------------------------------------
   !  Local Variables
   !------------------------------------------------------------------------------
-  integer :: num_args, ix, itmp
+  integer :: num_args, ix, itmp, ierr
   character(len=40) :: arg
   !------------------------------------------------------------------------------
   !  Local Constants 
   !------------------------------------------------------------------------------
+  integer, parameter :: length=40
   ! Allocatables
   num_args = command_argument_count()
   if (num_args == 0) then
@@ -64,50 +67,24 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
   do ix = 1, num_args
      call get_command_argument(ix,arg)
      if (arg(1:7) == "--alpha" .or. arg(1:2) == "-a") then
-        itmp = scan(arg(3:),"-.1234567890") + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) alpha
-        end if
+        alpha = check_arg_double(arg,ix,num_args,length,ierr)
      else if (arg(1:12) == "--gridpoints" .or. arg(1:2) == "-n") then
-        itmp = scan(arg(3:),"-.1234567890") + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) n
-        end if
+        n = check_arg_int(arg,ix,num_args,length,ierr)
      else if (arg(1:9) == "--ntsteps") then
-        itmp = scan(arg(3:),"-.1234567890") + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) ntsteps
-        end if
+        ntsteps = check_arg_int(arg,ix,num_args,length,ierr)
      else if (arg(1:7) == "--debug" .or. arg(1:2) == "-d") then
-        itmp = scan(arg(3:),"-.1234567890") + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) idebug
-        end if
+        idebug = 1
+        idebug = check_arg_int(arg,ix,num_args,length,ierr)
      else if (arg(1:5) == "--tau" .or. arg(1:10) == "--timestep") then
-        itmp = scan(arg(3:),"-.1234567890") + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) tau
-        end if
+        tau = check_arg_double(arg,ix,num_args,length,ierr)
      else if (arg(1:17) == "--initialposition" .or. arg(1:2) == "-x") then
-        itmp = scan(arg(3:),"-.1234567890") + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) x0
-        end if
+        x0 = check_arg_double(arg,ix,num_args,length,ierr)
      else if (arg(1:17) == "--initialmomentum" .or. arg(1:2) == "-p") then
-        itmp = scan(arg(3:),"-.1234567890") + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) p0
-        end if
+        p0 = check_arg_double(arg,ix,num_args,length,ierr)
      else if (arg(1:12) == "--mode" .or. arg(1:2) == "-m") then
-        itmp = scan(arg(3:),'"') + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) mode
-        end if
+        mode = check_arg_char(arg,ix,num_args,length,ierr)
      else if (arg(1:8) == "--output" .or. arg(1:2) == "-o") then
-        itmp = scan(arg(3:),'"') + 2
-        if (itmp > 0) then
-           read(arg(itmp:),*) output
-        end if
+        output = check_arg_char(arg,ix,num_args,length,ierr)
      else
         print*, "HELPPPPP!"
         stop
