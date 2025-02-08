@@ -2,7 +2,7 @@ objects := dump_psi.o propagate.o scalar.o ham_psi.o \
 	segal_bargmann.o propagate_green.o propagate_ab.o\
 	propagate_trap.o variance.o propagate_central.o pval.o wigner.o\
 	propagate_convert.o pvar.o xval.o getcli.o check_arg_char.o\
-	check_arg_int.o check_arg_double.o
+	check_arg_int.o check_arg_double.o dump_repr.o
         #propagate_fft.o\
 sources := $(objects:.o=.f90)
 progname := tdse

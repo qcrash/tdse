@@ -1,4 +1,4 @@
-subroutine getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
+subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr)
   !-----------------------------------------------------------------------------
   !------------------------------------------------------------------------------
   !
@@ -29,8 +29,8 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
   ! Output Parameters
   !------------------------------------------------------------------------------
   integer, intent(out):: n, ntsteps, idebug
-  double precision, intent(out):: tau, x0, p0, alpha
-  character(len=20), intent(out):: mode
+  double precision, intent(out):: tau, x0, p0, t0, alpha
+  character(len=20), intent(out):: mode, repr
   character(len=80), intent(out):: output
   !------------------------------------------------------------------------------
   ! Input/Output Parameters
@@ -59,12 +59,15 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
   tau = 0.1d0
   x0 = 0.5d0
   p0 = 0.5d0
+  t0 = 0d0
   alpha = 10d0
   mode = "exact" ! if mode = "help" ...
   output = ""
+  repr = "psisq"
 
   ! Read command line arguments
-  do ix = 1, num_args
+  ix = 1
+  do while (ix .le. num_args)
      call get_command_argument(ix,arg)
      if (arg(1:7) == "--alpha" .or. arg(1:2) == "-a") then
         alpha = check_arg_double(arg,ix,num_args,length,ierr)
@@ -81,14 +84,19 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, alpha, mode, output)
         x0 = check_arg_double(arg,ix,num_args,length,ierr)
      else if (arg(1:17) == "--initialmomentum" .or. arg(1:2) == "-p") then
         p0 = check_arg_double(arg,ix,num_args,length,ierr)
+     else if (arg(1:13) == "--initialtime" .or. arg(1:2) == "-t") then
+        t0 = check_arg_double(arg,ix,num_args,length,ierr)
      else if (arg(1:12) == "--mode" .or. arg(1:2) == "-m") then
         mode = check_arg_char(arg,ix,num_args,length,ierr)
      else if (arg(1:8) == "--output" .or. arg(1:2) == "-o") then
         output = check_arg_char(arg,ix,num_args,length,ierr)
+     else if (arg(1:6) == "--representation" .or. arg(1:2) == "-r") then
+        repr = check_arg_char(arg,ix,num_args,length,ierr)
      else
         print*, "HELPPPPP!"
         stop
      end if
+     ix = ix + 1
   end do
 
   
