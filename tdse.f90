@@ -30,7 +30,6 @@ program tdse
      exptemp = exp(-alpha*(xtemp*xtemp - imz0sq))
      psi0(i,1) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(p0*xtemp))
      psi0(i,2) = dcmplx(exptemp*cos(p0*xtemp), exptemp*sin(-p0*xtemp))
-     ! psi0(i,1) = dcmplx(1d0,0d0) ! debug wavepacket
   end do psi0_loop
   
   !! Normalizing and saving initial wavepacket with forward propagation
@@ -55,38 +54,11 @@ program tdse
   call dump_repr(n,h,psi0,t0,tau,chi,output,repr)
 
   !! Propagating wavefunction by one time step
-!!$  call propagate(n, h, psi, -tau, psi_old)
-!!$  propagate backward by 1 time step for psi(t-tau) aka psi_old
   do itsteps = 1, ntsteps
-!!$     call propagate(n, h, psi, tau, chi)
-!!$     call propagate_ab(n, h, psi, psi_old, tau, chi)     
-
-!!$     psinorm = dble(sqrt(scalar(n,h,psi(1,2),psi(1,2))))
-!!$     print *, 'Norm before backward propagation =', psinorm
-!!$     call ham_psi(n, h, psi, psi_old)
-!!$     call ham_psi(n, h, psi(1,2), psi_old(1,2))
-!!$     call propagate_trap(n, h, psi, tau, chi, psi_old)
-!!$     call propagate_trap(n, h, psi(1,2), -tau, chi(1,2), psi_old(1,2))
      call propagate_convert(n, h, psi0, tau*itsteps, chi)
      call propagate_convert(n, h, psi0(1,2), tau*itsteps, chi(1,2))
-!!$     do i = 1, n/2
-!!$        work(i) = temp
-!!$        work(i) = work(n-i+1) 
-!!$        work(n-i+1) = temp
-!!$     end do
-!!$     chi = 0.5d0*(conjg(work)+chi)
-!!$     psi_old = psi ! save old wavefunction
-     
-!!$     psinorm = dble(sqrt(scalar(n,h,chi,chi))) ! renormalization
      psi(:,1) = chi(:,1)!/psinorm ! use result as new input in next iteration
-!!$     psinorm = dble(sqrt(scalar(n,h,chi(1,2),chi(1,2)))) ! renormalization
      psi(:,2) = chi(:,2)!/psinorm ! use result as new input in next iteration
-     
-!!$     do i = 1, n
-!!$        print *, 'Probability amplitude =', abs(psi(i))**2
-!!$        psi(i) = dcmplx(cos(omega(i)*tau),-sin(omega(i)*tau))*psi(i) ! propagation
-!!$     end do
-     ! Someone remind me the purpose of these lines bc I forgot ~Toby
 
      !! Testing position and variance after propagation
      if (idebug > 0) then
@@ -95,8 +67,6 @@ program tdse
         psinorm = dble(sqrt(scalar(n,h,psi,psi))) ! norm
         print *, 'Norm =', psinorm
      end if
-!!$     psinorm = dble(sqrt(scalar(n,h,conjg(psi(:,2)),psi)))     
-!!$     print *, '<psi*(-t)|psi(t)> after propagation =', psinorm ! Commented out bc we forced renormalization
           
      call dump_repr(n,h,psi,t0 + tau*itsteps,tau,chi,output,repr)
   end do

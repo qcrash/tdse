@@ -93,7 +93,37 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
      else if (arg(1:6) == "--representation" .or. arg(1:2) == "-r") then
         repr = check_arg_char(arg,ix,num_args,length,ierr)
      else
-        print*, "HELPPPPP!"
+        print '(A)', "Usage: tdse [OPTION] [VALUE]" // new_line('A') // &
+             & "" // new_line('A') // &
+             & "Short description tdse WIP" // new_line('A') // &
+             & "" // new_line('A') // &
+             & "Initialization options:" // new_line('A') // &
+             & "" // new_line('A') // &
+             & "--alpha, -a                     " // &
+             & "set the reciprocal wavepacket width" // new_line('A') // &
+             & "--debug, -d                     " // &
+             & "view debug information" // new_line('A') // &
+             & "--gridpoints, -n                " // &
+             & "set the number of points to use in discretizing real"//&
+             & "space (must be an integer)" // new_line('A') // &
+             & "--timestep, --tau               " // &
+             & "set the size of the time step when discretizing time" &
+             & // new_line('A') // &
+             & "--initialposition, -x           " // &
+             & "set the wavepacket initial position (must be from" //&
+             & " -1 to +1 inclusive)" // new_line('A') // &
+             & "--initialmomentum, -p           " // &
+             & "set the wavepacket initial momentum" // new_line('A') // &
+             & "--initialtime, -t               " // &
+             & "set the start time" // new_line('A') // &
+             & "--mode, -m                      " // &
+             & "set the propagation scheme used (must be 'exact' " // &
+             & "'central' 'ab' 'fft' 'green' or 'trap')" // new_line('A') // &
+             & "--output, -o                    " // &
+             & "set the name of the output file" // new_line('A') // &
+             & "--representation, -r            " // &
+             & "choose how the output data is displayed in the " // &
+             & "movie (must be 'psisq' 'sb' 'wigner' or 'observables')"
         stop
      end if
      ix = ix + 1
