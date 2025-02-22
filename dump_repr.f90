@@ -49,7 +49,7 @@ subroutine dump_repr(n,h,psi,t,tau,chi,output,repr)
      iunit = 6
   end if
 
-  write(iunit,*) "t = ", t
+  write(iunit,*) "# t = ", t
   select case (repr)
   case ("psisq")
      call dump_psi(n,h,iunit,psi)

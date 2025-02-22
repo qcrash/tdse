@@ -7,8 +7,8 @@ fi
 if [[ -n $HOST_UID ]]; then
     usermod -u $HOST_UID docker >/dev/null
 fi
-if [[ -n $HOST_UID ]]; then
-    groupmod -g $HOST_UID docker >/dev/null
+if [[ -n $HOST_GID ]]; then
+    groupmod -g $HOST_GID docker >/dev/null
 fi
 
 cd ~docker
