@@ -106,7 +106,9 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
              & "--gridpoints, -n                " // &
              & "set the number of points to use in discretizing real"//&
              & "space (must be an integer)" // new_line('A') // &
-             & "--timestep, --tau               " // &
+             & "--ntsteps                       " // &
+             & "set the number of time steps (must be an integer)" // &
+             & new_line('A') // "--timestep, --tau               " // &
              & "set the size of the time step when discretizing time" &
              & // new_line('A') // &
              & "--initialposition, -x           " // &
