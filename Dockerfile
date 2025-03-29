@@ -1,7 +1,7 @@
 FROM debian:latest AS base
 # Install compilers and libraries
 ENV DEBIAN_FRONTEND="noninteractive"
-RUN apt-get update && apt-get install -y make gpg gnuplot ffmpeg\
+RUN apt-get update && apt-get install -y make gpg parallel gnuplot ffmpeg\
     emacs-nox gosu \
     gfortran gdb lsb-release gpg-agent wget procps
 RUN wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null  
