@@ -1,0 +1,6 @@
+NTSTEPS=1000
+TAU=0.1
+
+for ((i = 0 ; i < $NTSTEPS ; i++ )); do echo "$TAU*$i" | bc -l; done | \
+    parallel --joblog=gpar.log -k 'render --ntsteps=1 -n=100 --tau={}' | \
+    ffmpeg -f image2 -r 10.0 -y -f png_pipe -s:v 800:600 -i pipe: movie.mp4

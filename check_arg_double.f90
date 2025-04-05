@@ -10,7 +10,6 @@ double precision function check_arg_double(arg,iarg,narg,length,ierr)
   ierr = 0
   itmp = scan(arg(3:),"-.1234567890") + 2
   if (itmp > 2) then
-     print *, arg
      read(arg(itmp:),*) check_arg_double
   else if (itmp == 2 .and. iarg /= narg) then
      call get_command_argument(iarg + 1,argtmp)
