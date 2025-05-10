@@ -51,7 +51,7 @@ subroutine dump_repr(n,h,psi,t,tau,chi,output,repr)
 
   write(iunit,*) "# t = ", t
   select case (repr)
-  case ("psisq")
+  case ("psi")
      call dump_psi(n,h,iunit,psi)
   case ("sb")
      call segal_bargmann(n,h,iunit,psi,tau,chi)

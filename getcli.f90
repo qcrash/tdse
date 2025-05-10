@@ -63,7 +63,7 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
   alpha = 10d0
   mode = "exact" ! if mode = "help" ...
   output = ""
-  repr = "psisq"
+  repr = "psi"
 
   ! Read command line arguments
   ix = 1
@@ -90,7 +90,7 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
         mode = check_arg_char(arg,ix,num_args,length,ierr)
      else if (arg(1:8) == "--output" .or. arg(1:2) == "-o") then
         output = check_arg_char(arg,ix,num_args,length,ierr)
-     else if (arg(1:6) == "--representation" .or. arg(1:2) == "-r") then
+     else if (arg(1:16) == "--representation" .or. arg(1:2) == "-r") then
         repr = check_arg_char(arg,ix,num_args,length,ierr)
      else
         print '(A)', "Usage: tdse [OPTION] [VALUE]" // new_line('A') // &
@@ -125,7 +125,7 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
              & "set the name of the output file" // new_line('A') // &
              & "--representation, -r            " // &
              & "choose how the output data is displayed in the " // &
-             & "movie (must be 'psisq' 'sb' 'wigner' or 'observables')"
+             & "movie (must be 'psi' 'sb' 'wigner' or 'observables')"
         stop
      end if
      ix = ix + 1
