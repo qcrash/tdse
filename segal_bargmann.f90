@@ -44,7 +44,7 @@ subroutine segal_bargmann(n, h, iunit, psi, tau, chi)
   write(fmt1,*) "(f16.10,",n,"(2x, f16.10))"
   write(fmt0,*) "(i10,",n,"(2x, f16.10))"
   
-  write(70,fmt0) n+1, (h*dble(j) - 1d0, j =1, n)
+  write(iunit,fmt0) n+1, (h*dble(j) - 1d0, j =1, n)
   do i = 1,n ! x loop
      upsilon = -1d0 + dble(2*i)/dble(n+1) ! real part of z
      do j = 1,n ! k loop
@@ -66,7 +66,7 @@ subroutine segal_bargmann(n, h, iunit, psi, tau, chi)
      end do
 !!$     write(70,fmt) h*dble(i) - 1d0,(real(psi_bar(j,i)),
      !!aimag(psi_bar(j,i)), j = 1,n)
-     write(70, fmt1) h*dble(i) - 1d0, (abs(psi_bar(j,i))**2, j = 1,n)
+     write(iunit, fmt1) h*dble(i) - 1d0, (abs(psi_bar(j,i))**2, j = 1,n)
   end do
   
   deallocate(psi_bar)

@@ -31,7 +31,7 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
   double precision :: tmp
   double precision, parameter :: pi = 4d0*atan(1d0)
   double precision, allocatable :: w(:)
-  character :: fmt*40, fmt0*40
+  character :: fmt*80, fmt0*80
   double precision :: xi, eta
   !------------------------------------------------------------------------------
   !  Local Constants 
@@ -39,10 +39,10 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
 
   allocate(w(n))
   
-  write(fmt,*) "(f16.10,",n,"(2x, f16.10))"
-  write(fmt0,*) "(i10,",n,"(2x, f16.10))"
+  write(fmt,'(a,i8,a)') "(f16.10,",n,"(2x, f16.10))"
+  write(fmt0,'(a,i8,a)') "(i10,",n,"(2x, f16.10))"
   
-  write(70,fmt0) n+1, (h*dble(j) - 1d0, j =1, n)
+  write(iunit,fmt0) n+1, (h*dble(j) - 1d0, j =1, n)
   do i = 1,n ! x loop
      do j = 1,n ! k loop
         tmp = 0d0
@@ -63,7 +63,7 @@ subroutine wigner_distr(n, h, iunit, psi, tau, chi)
         tmp = tmp*h*2d0/pi
         w(j) = tmp
      end do
-     write(70,fmt) h*dble(i) - 1d0,(w(j), j = 1,n)
+     write(iunit,fmt) h*dble(i) - 1d0,(w(j), j = 1,n)
   end do
   
   deallocate(w)

@@ -13,7 +13,6 @@ double precision function check_arg_double(arg,iarg,narg,length,ierr)
      read(arg(itmp:),*) check_arg_double
   else if (itmp == 2 .and. iarg /= narg) then
      call get_command_argument(iarg + 1,argtmp)
-     print *, argtmp
      read(argtmp,*) check_arg_double
      iarg = iarg + 1
   else
