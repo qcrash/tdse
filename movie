@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-NTSTEPS=100
+NTSTEPS=1000
 TAU=0.01
 #
 echo $@
