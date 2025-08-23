@@ -1,0 +1,26 @@
+FROM ubuntu:noble AS base
+# Install compilers and libraries
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN apt-get update && apt-get install -y make gpg emacs-nox gosu \
+    gfortran gdb lsb-release gpg-agent curl procps
+#
+FROM base AS toolchains
+RUN curl "https://developer.arm.com/packages/arm-toolchains%3Aubuntu-24/noble/Release.key" |  tee /etc/apt/trusted.gpg.d/developer-arm-com.asc
+RUN echo "deb https://developer.arm.com/packages/arm-toolchains%3Aubuntu-24/noble/ ./"  | tee /etc/apt/sources.list.d/developer-arm-com.list
+RUN apt-get update && apt-get install -y arm-performance-libraries environment-modules \
+    && rm -rf /var/lib/apt/lists/*
+#
+FROM toolchains AS compile
+COPY . /usr/src/qcrash
+WORKDIR /usr/src/qcrash
+SHELL ["/bin/bash", "-c"]
+RUN source /usr/share/modules/init/bash  && export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles && module load armpl/25.07_gcc && make clean && make
+#
+FROM compile AS run
+COPY --from=compile /usr/src/qcrash/tdse /usr/local/bin/
+COPY --from=compile /usr/src/qcrash/entrypoint.sh /usr/local/bin/
+#
+# RUN useradd -m docker
+WORKDIR /home/docker
+ENTRYPOINT ["/usr/src/qcrash/entrypoint.sh"]
+CMD ["/bin/bash"]
