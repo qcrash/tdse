@@ -14,10 +14,10 @@ FROM toolchains AS compile
 COPY . /usr/src/qcrash
 WORKDIR /usr/src/qcrash
 SHELL ["/bin/bash", "-c"]
-RUN source /usr/share/modules/init/bash  && export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles && module load armpl/25.07_gcc && make clean && make
+#RUN source /usr/share/modules/init/bash  && export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles && module load arm-performance-libraries && make clean && make
 #
 FROM compile AS run
-COPY --from=compile /usr/src/qcrash/tdse /usr/local/bin/
+#COPY --from=compile /usr/src/qcrash/tdse /usr/local/bin/
 COPY --from=compile /usr/src/qcrash/entrypoint.sh /usr/local/bin/
 #
 # RUN useradd -m docker
