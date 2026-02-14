@@ -8,8 +8,8 @@ progname := tdse
 progs := $(progname).f90
 modules := #mkl_dfti.mod
 modsources := $(modules:.mod=.f90)
-FFLAGS := -fdefault-integer-8  -m64  -I"${MKLROOT}/include"
-LDFLAGS := -fdefault-integer-8 -m64  -L${MKLROOT}/lib -Wl,--no-as-needed -lmkl_gf_ilp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+FFLAGS := -fdefault-integer-8  -I"${MKLROOT}/include"
+LDFLAGS := -fdefault-integer-8  -lm -ldl
 
 # You want latexmk to *always* run, because make does not have all the info.
 # Also, include non-file targets in .PHONY so they are run regardless of any
