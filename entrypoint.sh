@@ -15,7 +15,9 @@ case $TARGETARCH in
 	source  /opt/intel/oneapi/setvars.sh > /dev/null
 	;;
     "aarch64")
-	echo "This is" $TARGETARCH
+	source /usr/share/modules/init/bash
+	export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles
+	module load arm-performance-libraries
 	;;
 esac
        
