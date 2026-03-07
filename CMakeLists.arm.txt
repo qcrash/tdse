@@ -22,7 +22,7 @@ segal_bargmann.f90 propagate_green.f90 propagate_ab.f90
 CACHE INTERNAL  "")
        	      add_library(mylib "${MY_MODS}")
 add_executable(tdse tdse.f90)
-target_link_libraries(tdse PRIVATE mylib PRIVATE MKL::MKL ${CMAKE_DL_LIBS}  m)
+target_link_libraries(tdse PRIVATE mylib PRIVATE LAPACK::LAPACK ${CMAKE_DL_LIBS}  m)
 
 #target_link_option(tdse PRIVATE "-fdefault-integer-8")
 
