@@ -9,7 +9,8 @@ enable_language(Fortran)
 # want a specific standard
 set(FVERSION "-std=gnu")
 set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${FVERSION} -fdefault-integer-8")
-find_package(MKL CONFIG REQUIRED)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG "TRUE")
+find_package(${CMAKE_MATH_LIBRARY} REQUIRED)
 #find_package(BLAS REQUIRED)
 #find_package(LAPACK REQUIRED)
 
@@ -22,7 +23,7 @@ segal_bargmann.f90 propagate_green.f90 propagate_ab.f90
 CACHE INTERNAL  "")
        	      add_library(mylib "${MY_MODS}")
 add_executable(tdse tdse.f90)
-target_link_libraries(tdse PRIVATE mylib PRIVATE MKL::MKL ${CMAKE_DL_LIBS}  m)
+target_link_libraries(tdse PRIVATE mylib PRIVATE ${CMAKE_MATH_LIBRARY}::${CMAKE_MATH_LIBRARY_NAMESPACE} ${CMAKE_DL_LIBS}  m)
 
 #target_link_option(tdse PRIVATE "-fdefault-integer-8")
 
