@@ -22,5 +22,7 @@ COPY --from=compile /usr/src/qcrash/entrypoint.sh /usr/local/bin/
 #
 # RUN useradd -m docker
 WORKDIR /home/docker
+ARG TARGETARCH
+ENV TARGETARCH=$TARGETARCH
 ENTRYPOINT ["/usr/src/qcrash/entrypoint.sh"]
 CMD ["/bin/bash"]
