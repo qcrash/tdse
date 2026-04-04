@@ -17,7 +17,7 @@ FROM toolchains AS compile
 COPY . /usr/src/qcrash
 WORKDIR /usr/src/qcrash
 SHELL ["/bin/bash", "-c"]
-#RUN source /usr/share/modules/init/bash  && export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles && module load arm-performance-libraries && make clean && make
+RUN source /usr/share/modules/init/bash  && export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles && module load arm-performance-libraries && cmake -B build --presets arm -DCMAKE_INSTALL_PREFIX=./install && cmake --build build && cmake --install build
 #
 FROM compile AS run
 #COPY --from=compile /usr/src/qcrash/tdse /usr/local/bin/
