@@ -20,7 +20,7 @@ SHELL ["/bin/bash", "-c"]
 RUN source /usr/share/modules/init/bash  && export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles && module load arm-performance-libraries && cmake -B build --preset arm -DCMAKE_INSTALL_PREFIX=./install && cmake --build build && cmake --install build
 #
 FROM compile AS run
-#COPY --from=compile /usr/src/qcrash/tdse /usr/local/bin/
+#COPY --from=compile /usr/src/qcrash/install/bin/tdse /usr/local/bin/
 COPY --from=compile /usr/src/qcrash/entrypoint.sh /usr/local/bin/
 #
 # RUN useradd -m docker
