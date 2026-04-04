@@ -14,7 +14,7 @@ FROM toolchains AS compile
 COPY . /usr/src/qcrash
 WORKDIR /usr/src/qcrash
 SHELL ["/bin/bash", "-c"]
-RUN source /opt/intel/oneapi/setvars.sh && cmake -B build --presets x86-64 -DCMAKE_INSTALL_PREFIX=./install && cmake --build build && cmake --install build
+RUN source /opt/intel/oneapi/setvars.sh && cmake -B build --preset x86-64 -DCMAKE_INSTALL_PREFIX=./install && cmake --build build && cmake --install build
 #
 FROM compile AS run
 COPY --from=compile /usr/src/qcrash/tdse/install/bin/tdse /usr/local/bin/
