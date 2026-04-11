@@ -14,7 +14,7 @@ case $TARGETARCH in
     "amd64")
 	source  /opt/intel/oneapi/setvars.sh > /dev/null
 	;;
-    "aarch64")
+    "arm64")
 	source /usr/share/modules/init/bash
 	export MODULEPATH=$MODULEPATH:/opt/arm/modulefiles
 	module load arm-performance-libraries
