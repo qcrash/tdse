@@ -22,8 +22,8 @@
 	    }
 	},
 	{
-	     "name": "arm",
-	    "displayName": "arm Architecture",
+	     "name": "arm64",
+	    "displayName": "arm64 Architecture",
 	    "inherits": "base",
 	   /*"architecture": "arm",*/
 	    "cacheVariables": {
