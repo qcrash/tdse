@@ -26,7 +26,7 @@ COPY . /usr/src/qcrash
 WORKDIR /usr/src/qcrash
 RUN useradd -m docker && chown docker:docker .
 SHELL ["/bin/bash", "-c"]
-RUN source ./entrypoint.sh "cmake -B build --preset $TARGETARCH -DCMAKE_INSTALL_PREFIX=./install ^&^& cmake --build build ^&^& cmake --install build"
+RUN source ./premake.sh && cmake -B build --preset $TARGETARCH -DCMAKE_INSTALL_PREFIX=./install && cmake --build build && cmake --install build
 #
 FROM compile AS run
 COPY --from=compile /usr/src/qcrash/install/bin/tdse /usr/local/bin/
