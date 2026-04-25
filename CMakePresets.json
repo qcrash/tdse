@@ -12,8 +12,8 @@
 	    "installDir": "${sourceDir}/install/${presetName}"
 	},
 	{
-	    "name": "x86-64",
-	    "displayName": "x86-64 Architecture",
+	    "name": "amd64",
+	    "displayName": "amd64 Architecture",
 	    "inherits": "base",
 	     /*"architecture": "x86-64",*/
 	    "cacheVariables": {

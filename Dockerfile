@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y cmake gpg emacs-nox gosu \
 ARG TARGETARCH
 ENV TARGETARCH=$TARGETARCH
 #
-FROM base AS toolchains-x86-64
+FROM base AS toolchains-amd64
 RUN curl https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null  
     RUN echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | tee /etc/apt/sources.list.d/oneAPI.list
 RUN apt-get update && apt-get install -y intel-oneapi-mkl-devel \	       
