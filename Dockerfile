@@ -31,6 +31,7 @@ RUN source ./premake.sh && cmake -B build --preset $TARGETARCH -DCMAKE_INSTALL_P
 FROM compile AS run
 COPY --from=compile /usr/src/qcrash/install/bin/tdse /usr/local/bin/
 COPY --from=compile /usr/src/qcrash/entrypoint.sh /usr/local/bin/
+COPY --from=compile /usr/src/qcrash/premake.sh /usr/local/bin/
 #
 # RUN useradd -m docker
 WORKDIR /home/docker
