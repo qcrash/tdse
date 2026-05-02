@@ -17,7 +17,7 @@ find_package(${CMAKE_MATH_LIBRARY} REQUIRED)
 # Source code
 set(MY_MODS   dump_psi.f90 propagate.f90 scalar.f90 ham_psi.f90
 segal_bargmann.f90 propagate_green.f90 propagate_ab.f90
-	propagate_trap.f90 variance.f90 propagate_central.f90 pval.f90 wigner.f90
+	propagate_trap.f90 variance.f90 propagate_central.f90 pval.f90 wigner_distr.f90
 	propagate_convert.f90 pvar.f90 xval.f90 getcli.f90 check_arg_int.f90 check_arg_double.f90 dump_repr.f90 check_arg_char.f90  #propagate_fft.f90
 #to do: adapt FFT to FFTW
 CACHE INTERNAL  "")
