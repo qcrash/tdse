@@ -11,6 +11,6 @@ if [[ -n $HOST_GID ]]; then
     groupmod -g $HOST_GID docker >/dev/null
 fi
 
-cd ~docker
-source /opt/intel/oneapi/setvars.sh > /dev/null
+source premake.sh
+
 exec gosu docker "$@"
