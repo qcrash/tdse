@@ -47,11 +47,8 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
   integer, parameter :: length=40
   ! Allocatables
   num_args = command_argument_count()
-  if (num_args == 0) then
-     print*, "HELPPPPP function!"
-     stop
-  end if
-
+  arg = ""
+  
   ! Set default values
   n = 100
   ntsteps = 10
@@ -66,7 +63,7 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
   repr = "psi"
 
   ! Read command line arguments
-  ix = 1
+  ix = 0
   do while (ix .le. num_args)
      call get_command_argument(ix,arg)
      if (arg(1:7) == "--alpha" .or. arg(1:2) == "-a") then
@@ -95,37 +92,80 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
      else
         print '(A)', "Usage: tdse [OPTION] [VALUE]" // new_line('A') // &
              & "" // new_line('A') // &
-             & "Short description tdse WIP" // new_line('A') // &
+             & "Solve time-dependent Schroedinger equation for a " // &
+             & "particle in a 1D box" // new_line('A') // &
+             & "All quantities are in atomic (Hartree) units" // &
+             & new_line('A') // &
              & "" // new_line('A') // &
-             & "Initialization options:" // new_line('A') // &
+             & "Options:" // new_line('A') // &
              & "" // new_line('A') // &
+             & "" // new_line('A') // &             
              & "--alpha, -a                     " // &
              & "set the reciprocal wavepacket width" // new_line('A') // &
+             & "                                default: 10d0" // &
+             & new_line('A') // &
+             & "" // new_line('A') // &             
              & "--debug, -d                     " // &
-             & "view debug information" // new_line('A') // &
+             & "set debug level" // new_line('A') // &
+             & "                                default: 0" // &
+             & new_line('A') // &
+             & "" // new_line('A') // &             
              & "--gridpoints, -n                " // &
-             & "set the number of points to use in discretizing real"//&
-             & "space (must be an integer)" // new_line('A') // &
+             & "set the number of points to use in discretizing" // &
+             & new_line('A') // &
+             & "                                real space (must be an" // &
+             & " integer)"// new_line('A') // &
+             & "                                default: 100" // &
+             & new_line('A') // &
+             & "" // new_line('A') // &             
              & "--ntsteps                       " // &
              & "set the number of time steps (must be an integer)" // &
+             & new_line('A') // &
+             & "                                default: 10" // &
+             & "" // new_line('A') // &                          
              & new_line('A') // "--timestep, --tau               " // &
-             & "set the size of the time step when discretizing time" &
-             & // new_line('A') // &
+             & "set the size of the time step when discretizing time" // &
+             & new_line('A') // &
+             & "                                default: 0.1d0" // &
+             & "" // new_line('A') // &             
+             & new_line('A') // &
              & "--initialposition, -x           " // &
-             & "set the wavepacket initial position (must be from" //&
-             & " -1 to +1 inclusive)" // new_line('A') // &
+             & "set the wavepacket initial position" // new_line('A') // &
+             & "                                must be within" // &
+             & "[-1d0,+1d0]" // &
+             & new_line('A') // &
+             & "                                default: 0.5d0" // &
+             & "" // new_line('A') // &             
+             & new_line('A') // &
              & "--initialmomentum, -p           " // &
              & "set the wavepacket initial momentum" // new_line('A') // &
+             & "                                default: 0.5d0" // &
+             & "" // new_line('A') // &             
+             & new_line('A') // &
              & "--initialtime, -t               " // &
              & "set the start time" // new_line('A') // &
+             & "                                default: 0d0" // &
+             & "" // new_line('A') // &             
+             & new_line('A') // &
              & "--mode, -m                      " // &
-             & "set the propagation scheme used (must be 'exact' " // &
-             & "'central' 'ab' 'fft' 'green' or 'trap')" // new_line('A') // &
+             & "set the propagation scheme used" // new_line('A') // &
+             & "                                options include: " // &
+             & "'central' 'ab' 'fft' 'green' 'trap' " // &
+             & new_line('A') // &
+             & "                                default: exact" // &
+             & "" // new_line('A') // &             
+             & new_line('A') // &
              & "--output, -o                    " // &
              & "set the name of the output file" // new_line('A') // &
+             & "                                default: standard output" // &
+             & "" // new_line('A') // &             
+             & new_line('A') // &
              & "--representation, -r            " // &
-             & "choose how the output data is displayed in the " // &
-             & "movie (must be 'psi' 'sb' 'wigner' or 'observables')"
+             & "choose type of output data " // &
+             & new_line('A') // &
+             & "                                options include: " // &
+             & "'psi' 'sb' 'wigner' 'observables'" // &
+             & "                                    default: psi"    
         stop
      end if
      ix = ix + 1
