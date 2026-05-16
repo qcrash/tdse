@@ -1,7 +1,8 @@
 {
-    "version": 3,
+    "version": 10,
     "cmakeMinimumRequired": {
-	"major": 1
+	"major": 3,
+	"minor": 5
     },
     "configurePresets": [
 	{
@@ -15,7 +16,6 @@
 	    "name": "amd64",
 	    "displayName": "amd64 Architecture",
 	    "inherits": "base",
-	     /*"architecture": "x86-64",*/
 	    "cacheVariables": {
 		"CMAKE_MATH_LIBRARY": "MKL",
 		"CMAKE_MATH_LIBRARY_NAMESPACE": "MKL"
@@ -25,7 +25,6 @@
 	     "name": "arm64",
 	    "displayName": "arm64 Architecture",
 	    "inherits": "base",
-	   /*"architecture": "arm",*/
 	    "cacheVariables": {
 		"CMAKE_MATH_LIBRARY": "LAPACK",
 		"CMAKE_MATH_LIBRARY_NAMESPACE": "LAPACK"
