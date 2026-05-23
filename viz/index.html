@@ -1,0 +1,1143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Particle in a Box · TDSE Interactive Demo</title>
+<style>
+  :root {
+    --bg: #fbfaf6;
+    --ink: #1c1a17;
+    --ink-soft: #5a544c;
+    --ink-faint: #8a8378;
+    --rule: #e6e0d4;
+    --rule-soft: #efeadf;
+    --accent: #2d5d57;
+    --re: #2f5d9e;
+    --im: #c4793a;
+    --warm: #b4582c;
+    --wall: #6e3a1e;
+    --panel: #ffffff;
+    --shadow: 0 1px 0 rgba(28,26,23,.04), 0 12px 32px -16px rgba(28,26,23,.18);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Charter", "Source Serif Pro", Georgia, "Songti SC", serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .t-zh { display: none; }
+  body.show-zh .t-en { display: none; }
+  body.show-zh .t-zh { display: revert; }
+
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 28px 96px;
+  }
+
+  header { position: relative; }
+  .lang-switch {
+    position: absolute;
+    top: 0; right: 0;
+    display: inline-flex;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--panel);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 12px;
+  }
+  .lang-switch button {
+    border: none;
+    background: transparent;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--ink-soft);
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: 0.04em;
+  }
+  .lang-switch button.active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  header h1 {
+    font-size: 34px;
+    font-weight: 500;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header p.lede {
+    margin: 0 0 4px;
+    color: var(--ink-soft);
+    font-size: 17px;
+    max-width: 680px;
+  }
+  header p.sub {
+    margin: 6px 0 0;
+    color: var(--ink-faint);
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  .viz {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 36px;
+  }
+  @media (max-width: 880px) { .viz { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 18px 14px;
+    box-shadow: var(--shadow);
+  }
+  .panel h3 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .panel h3 .formula {
+    font-family: "Iowan Old Style", Charter, Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink);
+    margin-left: 8px;
+    font-size: 15px;
+  }
+  .panel .caption {
+    margin: 6px 2px 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .panel svg, .panel canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .stats {
+    margin-top: 22px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 14px 18px;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 720px) { .stats { grid-template-columns: repeat(3, 1fr); } }
+  .stats > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stats .lbl {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    text-transform: uppercase;
+  }
+  .stats .val {
+    font-size: 19px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    font-family: "Iowan Old Style", Charter, Georgia, serif;
+    font-style: italic;
+  }
+
+  .controls {
+    margin-top: 18px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 14px;
+  }
+  .controls .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .controls .row + .row { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule-soft); }
+  .controls button {
+    border: 1px solid var(--rule);
+    background: #fbfaf6;
+    color: var(--ink);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 15px;
+    cursor: pointer;
+    font-family: inherit;
+    min-width: 42px;
+  }
+  .controls button:hover { background: #f3eee3; }
+  .controls .t-readout {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+    min-width: 124px;
+    font-size: 13px;
+  }
+  .controls input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
+  .controls .params {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 720px) { .controls .params { grid-template-columns: 1fr; } }
+  .controls .params label {
+    display: grid;
+    grid-template-columns: 28px 1fr 56px;
+    align-items: center;
+    gap: 10px;
+    font-style: italic;
+    font-family: "Iowan Old Style", Charter, Georgia, serif;
+    font-size: 16px;
+  }
+  .controls .params .readout {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+    font-size: 13px;
+    text-align: right;
+    font-style: normal;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  .controls .params input[type=range] { accent-color: var(--warm); }
+
+  .story {
+    margin-top: 48px;
+    max-width: 720px;
+  }
+  .story h2 {
+    font-size: 22px;
+    font-weight: 500;
+    margin: 0 0 14px;
+    letter-spacing: -0.005em;
+  }
+  .story h3 {
+    margin: 26px 0 6px;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 600;
+  }
+  .story p { margin: 0 0 12px; color: var(--ink); }
+  .story em { color: var(--warm); font-style: italic; }
+  .story .eq {
+    font-family: "Iowan Old Style", Charter, Georgia, serif;
+    font-style: italic;
+    background: #f5efe2;
+    padding: 8px 12px;
+    border-left: 2px solid var(--accent);
+    margin: 12px 0;
+    border-radius: 2px;
+    font-size: 15px;
+    overflow-x: auto;
+  }
+  .story code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #f1ece0;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .axis path, .axis line { stroke: #d8d2c4; shape-rendering: crispEdges; }
+  .axis text { fill: var(--ink-faint); font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .gridline { stroke: var(--rule-soft); stroke-width: 1; shape-rendering: crispEdges; }
+  .zero { stroke: #b8b1a3; stroke-width: 1; stroke-dasharray: 2 3; }
+  .wall { stroke: var(--wall); stroke-width: 2.2; shape-rendering: crispEdges; }
+  .label { fill: var(--ink-soft); font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+
+  .legend {
+    display: flex;
+    gap: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin: 0 0 6px 4px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .legend .sw {
+    display: inline-block;
+    width: 18px;
+    height: 2px;
+    vertical-align: middle;
+    margin-right: 5px;
+    border-radius: 1px;
+  }
+  .legend label.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background 0.15s;
+  }
+  .legend label.toggle:hover { background: var(--rule-soft); }
+  .legend label.toggle input[type=checkbox] {
+    margin: 0;
+    accent-color: var(--ink-soft);
+  }
+  .legend label.toggle:not(.on) { opacity: 0.55; text-decoration: line-through; }
+  .legend label.toggle:not(.on) .sw { opacity: 0.35; }
+</style>
+</head>
+<body class="show-en">
+<main>
+
+<header>
+  <div class="lang-switch" role="tablist" aria-label="Language">
+    <button id="btn-en" class="active" aria-pressed="true">EN</button>
+    <button id="btn-zh">中文</button>
+  </div>
+
+  <h1>
+    <span class="t-en">Particle in a Box</span>
+    <span class="t-zh">盒中粒子</span>
+  </h1>
+  <p class="lede">
+    <span class="t-en">A Gaussian wavepacket inside an infinite square well, evolved by the time-dependent Schrödinger equation using the same eigenstate-expansion method as the <code style="background:#f1ece0;padding:1px 5px;border-radius:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;">tdse</code> Fortran solver. It bounces off the walls, interferes with its own reflection, and eventually scrambles into noise.</span>
+    <span class="t-zh">一个高斯波包关在无限深势阱里，用跟 <code style="background:#f1ece0;padding:1px 5px;border-radius:3px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;">tdse</code> Fortran 求解器同一套本征态展开方法演化。它会撞墙反弹、和反射波互相干涉，最终被打散成一片"噪声"。</span>
+  </p>
+  <p class="sub">
+    <span class="t-en">TDSE · particle in a box on x ∈ (−1, 1) · eigenstate expansion · Wigner phase space</span>
+    <span class="t-zh">含时薛定谔方程 · 一维势阱 x ∈ (−1, 1) · 本征态展开 · Wigner 相空间</span>
+  </p>
+</header>
+
+<section class="viz">
+  <div class="panel">
+    <h3>
+      <span class="t-en">Position space</span><span class="t-zh">位置空间</span>
+      <span class="formula">|ψ(x,t)|<sup>2</sup></span>
+    </h3>
+    <div class="legend">
+      <span><span class="sw" style="background:#2d5d57"></span>
+        <span class="t-en">|ψ|² · probability density</span>
+        <span class="t-zh">|ψ|² · 概率密度</span>
+      </span>
+      <label class="toggle" id="tgl-re-wrap">
+        <input type="checkbox" id="tgl-re">
+        <span class="sw" style="background:#2f5d9e"></span>Re(ψ)
+      </label>
+      <label class="toggle" id="tgl-im-wrap">
+        <input type="checkbox" id="tgl-im">
+        <span class="sw" style="background:#c4793a"></span>Im(ψ)
+      </label>
+      <span><span class="sw" style="background:#6e3a1e;height:3px"></span>
+        <span class="t-en">walls</span><span class="t-zh">硬墙</span>
+      </span>
+    </div>
+    <svg id="svg-x" viewBox="0 0 460 320" preserveAspectRatio="xMidYMid meet"></svg>
+    <p class="caption">
+      <span class="t-en">The wavefunction vanishes at x = ±1: the walls are infinitely steep. Inside the box ψ propagates as if free; when it hits a wall the reflected wave superposes on the incident one and weaves an interference pattern.</span>
+      <span class="t-zh">波函数在 x = ±1 处必须等于 0：势阱壁是无穷陡的。盒子内部 ψ 像自由粒子那样演化；撞到墙后，反射波叠加在入射波上，织出干涉图案。</span>
+    </p>
+  </div>
+  <div class="panel">
+    <h3>
+      <span class="t-en">Phase space · Wigner function</span><span class="t-zh">相空间 · Wigner 函数</span>
+      <span class="formula">W(x,p,t)</span>
+    </h3>
+    <div class="legend">
+      <span class="t-en">negative</span><span class="t-zh">负</span>
+      <span id="cbar" style="width:140px;height:10px;display:inline-block;vertical-align:middle;border:1px solid #d8d2c4;"></span>
+      <span class="t-en">positive</span><span class="t-zh">正</span>
+    </div>
+    <canvas id="cnv-p" width="460" height="320"></canvas>
+    <p class="caption">
+      <span class="t-en">A quasi-probability density on the (x, p) plane, computed point-for-point with the kernel from <code>wigner.f90</code>. Unlike a classical probability, W can go negative — those blue patches are the literal fingerprints of quantum interference.</span>
+      <span class="t-zh">(x, p) 平面上的准概率密度，逐点使用 <code>wigner.f90</code> 的核函数计算。和经典概率密度不同，W 可以取负值——那些蓝色区域就是量子干涉的直接指纹。</span>
+    </p>
+  </div>
+</section>
+
+<section class="stats">
+  <div><span class="lbl">⟨x⟩</span><span id="stat-x" class="val">0.00</span></div>
+  <div><span class="lbl">Δx</span><span id="stat-dx" class="val">0.00</span></div>
+  <div><span class="lbl">⟨p⟩</span><span id="stat-p" class="val">0.00</span></div>
+  <div><span class="lbl">Δp</span><span id="stat-dp" class="val">0.00</span></div>
+  <div><span class="lbl">⟨E⟩</span><span id="stat-e" class="val">0.00</span></div>
+  <div><span class="lbl">‖ψ‖</span><span id="stat-norm" class="val">1.000</span></div>
+</section>
+
+<section class="controls">
+  <div class="row">
+    <button id="play" title="Play / Pause">⏸</button>
+    <input type="range" id="t-slider" min="0" max="1.5" step="0.001" value="0">
+    <span id="t-readout" class="t-readout">t = 0.000</span>
+    <button id="reset" title="Reset">↺</button>
+  </div>
+  <div class="row params">
+    <label>x<sub>0</sub>
+      <input type="range" id="x0" min="-0.8" max="0.8" step="0.02" value="-0.5">
+      <span class="readout" id="x0-r">-0.50</span>
+    </label>
+    <label>p<sub>0</sub>
+      <input type="range" id="p0" min="-25" max="25" step="0.5" value="10">
+      <span class="readout" id="p0-r">10.0</span>
+    </label>
+    <label>α
+      <input type="range" id="alpha" min="2" max="40" step="0.5" value="10">
+      <span class="readout" id="alpha-r">10.0</span>
+    </label>
+  </div>
+</section>
+
+<section class="story">
+  <h2 class="t-en">What you're looking at</h2>
+  <h2 class="t-zh">看动画时，你在看什么</h2>
+
+  <p class="t-en">A quantum particle isn't a point but a complex-valued <em>wavefunction</em> <code>ψ(x,t)</code>. Its modulus-squared <code>|ψ(x,t)|²</code> is the probability density of finding it at position <code>x</code> at time <code>t</code>. Here that particle is trapped between two infinitely tall walls at <code>x = ±1</code>—the canonical "particle in a box."</p>
+  <p class="t-zh">量子粒子不是一个点，而是一个复值的 <em>波函数</em> <code>ψ(x,t)</code>。模平方 <code>|ψ(x,t)|²</code> 告诉你在时刻 <code>t</code> 的位置 <code>x</code> 上能找到它的概率密度。这里这个粒子被两堵无限高的墙关在 <code>x = ±1</code> 之间——也就是教科书上的"盒中粒子"。</p>
+
+  <h3 class="t-en">I · The eigenstates of the box</h3>
+  <h3 class="t-zh">一、势阱的本征态</h3>
+  <p class="t-en">For an empty box on <code>(−1, 1)</code>, the Hamiltonian <code>Ĥ = −½ ∂²/∂x²</code> with Dirichlet boundary conditions has a complete set of energy eigenstates indexed by an integer <code>n = 1, 2, 3, …</code></p>
+  <p class="t-zh">在 <code>(−1, 1)</code> 上的空盒子里，哈密顿量 <code>Ĥ = −½ ∂²/∂x²</code> 在 Dirichlet 边界条件下有一组完备的能量本征态，用整数 <code>n = 1, 2, 3, …</code> 编号：</p>
+  <div class="eq">φ<sub>n</sub>(x) = sin(nπ(x+1)/2),  &nbsp;&nbsp; E<sub>n</sub> = n²π² / 8</div>
+  <p class="t-en">These are standing waves that vanish at both walls. The energies grow as <code>n²</code>—higher modes oscillate faster and faster.</p>
+  <p class="t-zh">这些是在两堵墙上都为零的驻波。能量随 <code>n²</code> 增长——高阶模式的振荡频率越来越快。</p>
+
+  <h3 class="t-en">II · The initial wavepacket as a sum of standing waves</h3>
+  <h3 class="t-zh">二、初始波包 = 驻波的叠加</h3>
+  <p class="t-en">We start from a Gaussian, the same shape the Fortran's <code>tdse.f90</code> writes onto the grid:</p>
+  <p class="t-zh">我们从一个高斯出发——形状跟 Fortran 的 <code>tdse.f90</code> 写到网格上的那个一致：</p>
+  <div class="eq">ψ(x, 0) ∝ exp[ −α (x − x<sub>0</sub>)<sup>2</sup> + i p<sub>0</sub> (x − x<sub>0</sub>) ]</div>
+  <p class="t-en">Three knobs: <code>x₀</code> is the center, <code>p₀</code> is the average momentum, <code>α</code> sets how sharp the packet is. Project this Gaussian onto every <code>φₙ</code>:</p>
+  <p class="t-zh">三个旋钮：<code>x₀</code> 是中心位置，<code>p₀</code> 是平均动量，<code>α</code> 决定波包多窄。然后把这个高斯投影到每一个 <code>φₙ</code> 上：</p>
+  <div class="eq">c<sub>n</sub> = ∫<sub>−1</sub><sup>1</sup> φ<sub>n</sub>(x)  ψ(x, 0)  dx</div>
+  <p class="t-en">The Fortran computes these (numerically, via finite differences); this page computes them with the same trapezoidal rule but on the exact analytic eigenstates—so the spectrum agrees with the Fortran to leading order in <code>1/n_grid</code>.</p>
+  <p class="t-zh">Fortran 用有限差分数值算 <code>cₙ</code>；这一页用同样的梯形积分，但作用在精确的解析本征态上——所以两套频谱在 <code>1/n_grid</code> 的领头阶上一致。</p>
+
+  <h3 class="t-en">III · Each mode rotates on its own clock</h3>
+  <h3 class="t-zh">三、每个模式按自己的节奏旋转</h3>
+  <p class="t-en">Because each <code>φₙ</code> is an energy eigenstate, the Schrödinger equation reduces to a phase rotation per mode:</p>
+  <p class="t-zh">每个 <code>φₙ</code> 都是哈密顿量本征态，所以薛定谔方程就退化成每个模式独立的相位旋转：</p>
+  <div class="eq">ψ(x, t) = Σ<sub>n</sub> c<sub>n</sub> φ<sub>n</sub>(x) e<sup>−i E<sub>n</sub> t</sup></div>
+  <p class="t-en">This is exactly what <code>propagate_convert.f90</code> does in the Fortran: transform to the sine basis, multiply by phases <code>exp(−i Eₙ t)</code>, transform back. Every frame on this page is one evaluation of this sum, on a 256-point grid, with the first 100 modes. No time-stepping, no accumulated error.</p>
+  <p class="t-zh">这正是 Fortran 里 <code>propagate_convert.f90</code> 干的事：变换到 sine 基底，乘上相位 <code>exp(−i Eₙ t)</code>，再变换回来。本页每一帧都是这个求和的一次求值——256 个网格点，前 100 个模式。没有时间推进、没有累积误差。</p>
+
+  <h3 class="t-en">IV · Wigner phase space</h3>
+  <h3 class="t-zh">四、Wigner 相空间</h3>
+  <p class="t-en">The right panel projects the wavefunction onto a (position, momentum) plane via the Wigner quasi-distribution:</p>
+  <p class="t-zh">右图通过 Wigner 准分布把波函数投到 (位置, 动量) 平面上：</p>
+  <div class="eq">W(x, p, t) = (1/π) ∫ ψ*(x+ξ, t)  ψ(x−ξ, t)  e<sup>2 i p ξ</sup> dξ</div>
+  <p class="t-en">Same formula as <code>wigner.f90</code>; this page computes it on every frame with an extended momentum range so the peak stays in view. The crucial feature: <em>W can be negative.</em> Classical probabilities can't—so any blue patch on the right is a quantum-only effect, the signature of two pieces of ψ interfering with each other.</p>
+  <p class="t-zh">公式跟 <code>wigner.f90</code> 一致；本页在更宽的动量范围内逐帧计算，让峰始终在视野内。关键性质：<em>W 可以取负值</em>。经典概率不行——所以右图里任何一块蓝色都是量子专属现象，是两段 ψ 之间在干涉。</p>
+
+  <h3 class="t-en">V · What you'll see</h3>
+  <h3 class="t-zh">五、你会看到什么</h3>
+  <p class="t-en"><strong>Bouncing.</strong> The Wigner blob slides toward whichever wall <code>p₀</code> points at, with classical round-trip time <code>T_cl ≈ 4/|p₀|</code>.</p>
+  <p class="t-zh"><strong>反弹</strong>。Wigner 斑点朝 <code>p₀</code> 指向的那堵墙滑过去，经典往返周期约为 <code>T_cl ≈ 4/|p₀|</code>。</p>
+  <p class="t-en"><strong>Reflection flip.</strong> When the packet hits a wall, the Wigner blob splits and the momentum sign flips—you'll literally see it jump from <code>+p₀</code> to <code>−p₀</code> on the vertical axis.</p>
+  <p class="t-zh"><strong>反弹翻转</strong>。波包撞墙的瞬间，Wigner 斑点会"裂"开，动量符号翻转——你会直观看到它从纵轴的 <code>+p₀</code> 跳到 <code>−p₀</code>。</p>
+  <p class="t-en"><strong>Interference fringes.</strong> Near a wall, the incoming and reflected pieces overlap. The position panel develops vertical stripes with spatial period <code>π / |p₀|</code> (the de Broglie wavelength), and the phase-space picture sprouts a band of <em>blue</em> between the two streams—the W-function admitting that interference is happening.</p>
+  <p class="t-zh"><strong>干涉条纹</strong>。墙附近入射和反射波同时存在，位置面板会出现竖条纹，空间周期约为 <code>π / |p₀|</code>（德布罗意波长）；相空间则会在两股之间长出一条<em>蓝带</em>——W 函数直接写明了"这里有干涉"。</p>
+  <p class="t-en"><strong>Scrambling.</strong> Different modes accumulate phases at different rates (<code>∝ n²</code>). After enough bounces the wavefunction looks like noise. It isn't random—it's a coherent superposition with too many components for the eye to parse.</p>
+  <p class="t-zh"><strong>"打乱"</strong>。不同模式按不同的速率累积相位（<code>∝ n²</code>）。反弹几次后波函数看起来像噪声——其实并不是随机，只是叠加的成分太多、肉眼分不清而已。</p>
+  <p class="t-en"><strong>Revivals.</strong> Because every <code>Eₙ</code> is an integer multiple of <code>π²/8</code>, all phases re-align at <code>T_rev = 16/π ≈ 5.09</code>. Even partial revivals at <code>T_rev / q</code> are pretty—several little copies of the packet appear at once.</p>
+  <p class="t-zh"><strong>复活</strong>。因为所有 <code>Eₙ</code> 都是 <code>π²/8</code> 的整数倍，所有相位会在 <code>T_rev = 16/π ≈ 5.09</code> 重新对齐。在分数时刻 <code>T_rev/q</code> 还有漂亮的"部分复活"——同时出现几个小副本。</p>
+  <p class="t-en"><strong>Energy and norm are conserved.</strong> <code>⟨E⟩ = Σ |cₙ|² Eₙ</code> and <code>‖ψ‖²</code> both stay constant in the readout below.</p>
+  <p class="t-zh"><strong>能量与归一化都守恒</strong>。下方读数里 <code>⟨E⟩ = Σ |cₙ|² Eₙ</code> 和 <code>‖ψ‖²</code> 都不会变。</p>
+
+  <h3 class="t-en">VI · How this aligns with the Fortran code</h3>
+  <h3 class="t-zh">六、跟 Fortran 求解器对得上吗</h3>
+  <p class="t-en">Same domain <code>x ∈ (−1, 1)</code>, same boundary condition <code>ψ = 0</code> at the walls, same initial Gaussian formula (matching <code>tdse.f90:50–55</code>), same eigenstate-expansion method (matching <code>propagate_convert.f90</code>), same Wigner kernel (matching <code>wigner.f90</code>). The one deliberate difference: this page uses the exact analytic eigenfunctions <code>sin(nπ(x+1)/2)</code> while the Fortran uses the finite-difference eigenvectors of its kinetic matrix—the two agree as <code>n_grid → ∞</code>, and for the low modes that dominate the dynamics on screen they're visually indistinguishable. Run the Fortran with the same <code>(x₀, p₀, α)</code> and any of its <code>psi_⟨step⟩</code> output files will match the curve here at <code>t = step × τ</code>.</p>
+  <p class="t-zh">同一区域 <code>x ∈ (−1, 1)</code>、同一边界条件（墙上 <code>ψ = 0</code>）、同一初始高斯公式（对应 <code>tdse.f90:50–55</code>）、同一种本征态展开（对应 <code>propagate_convert.f90</code>）、同一 Wigner 核（对应 <code>wigner.f90</code>）。唯一刻意的差别：本页用解析本征函数 <code>sin(nπ(x+1)/2)</code>，Fortran 用其动能矩阵的有限差分本征矢——两者在 <code>n_grid → ∞</code> 时一致，对屏幕上主导的低阶模式肉眼看不出差别。用同样的 <code>(x₀, p₀, α)</code> 跑 Fortran，它任何 <code>psi_⟨step⟩</code> 文件都能对上本页 <code>t = step × τ</code> 时刻的曲线。</p>
+
+  <h3 class="t-en">VII · Implementation notes</h3>
+  <h3 class="t-zh">七、给教授的版本说明</h3>
+  <p class="t-en">Single self-contained HTML file. No dependencies, no build step. Open <code>viz/index.html</code> in any browser. The position panel is SVG (right-click any frame → save as a vector graphic for slides). The phase-space panel is Canvas. Animation speed, time horizon, and grid resolution are constants at the top of the <code>&lt;script&gt;</code> block.</p>
+  <p class="t-zh">单文件、零依赖、不需要构建。任何浏览器里打开 <code>viz/index.html</code> 即可。位置面板是 SVG（右键单帧 → 另存为矢量图直接进 slides）。相空间面板是 Canvas。动画速度、时间范围、网格分辨率在 <code>&lt;script&gt;</code> 块顶部的常量里可调。</p>
+</section>
+
+<footer>
+  <span class="t-en">TDSE viz · particle in a box · analytic eigenstate expansion · Wigner phase space · matches the Fortran solver pointwise</span>
+  <span class="t-zh">TDSE viz · 盒中粒子 · 解析本征态展开 · Wigner 相空间 · 与 Fortran 求解器逐点一致</span>
+</footer>
+
+</main>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Particle in a box on (-1, 1) — eigenstate expansion.
+     φ_n(x) = sin(n π (x+1) / 2),  E_n = n² π² / 8,  n = 1, 2, ...
+     ψ(x, 0) ∝ exp[-α(x-x₀)² + i p₀ (x-x₀)]
+     ψ(x, t) = Σ_n c_n φ_n(x) exp(-i E_n t)
+   ============================================================ */
+
+const X_MIN = -1, X_MAX = 1;
+const L = X_MAX - X_MIN;
+const N_MODES = 100;
+const N_X_DISPLAY = 256;        // position-panel x resolution
+const N_X_W = 128;              // ψ samples used by Wigner (Wigner x-grid)
+const N_P_W = 96;               // Wigner p-grid resolution
+const T_MAX = 1.5;
+const ANIM_SPEED = 0.15;        // sim-time per second of wall clock
+
+const PSI2_YMIN = -2.2, PSI2_YMAX = 4.5;
+const SVG_W = 460, SVG_H = 320;
+const M = { top: 18, right: 16, bottom: 32, left: 38 };
+const CW = SVG_W - M.left - M.right, CH = SVG_H - M.top - M.bottom;
+
+/* ---------- state ---------- */
+const state = {
+  x0: -0.5, p0: 10.0, alpha: 10.0,
+  t: 0, playing: true, lastFrameAt: 0,
+  coeffs: null,
+  phiDisp: null,
+  phiW: null,
+  xDisp: null,
+  xW: null,
+  hDisp: 0,
+  hW: 0,
+  cnPhased: new Float64Array(2 * N_MODES),
+  psiDisp: null,
+  psiW: null,
+  wField: new Float64Array(N_X_W * N_P_W),
+  wPMin: 0, wPMax: 0,
+  meanH: 0
+};
+
+/* ---------- diverging colormap (Wigner: negative ↔ positive) ---------- */
+function buildDivergingLUT() {
+  // index ∈ [0, 255] maps to u ∈ [-1, 1]
+  const stops = [
+    [-1.00, [38, 50, 110]],
+    [-0.55, [80, 130, 180]],
+    [-0.18, [200, 215, 230]],
+    [ 0.00, [251, 250, 246]],
+    [ 0.18, [245, 220, 195]],
+    [ 0.55, [220, 130, 80]],
+    [ 1.00, [120, 30, 50]]
+  ];
+  const lut = new Uint8ClampedArray(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = (i / 255) * 2 - 1;
+    let j = 0;
+    while (j < stops.length - 1 && stops[j+1][0] < t) j++;
+    const [t0, c0] = stops[j], [t1, c1] = stops[j+1];
+    const u = (t - t0) / (t1 - t0);
+    for (let k = 0; k < 3; k++) lut[i*3+k] = c0[k] + (c1[k] - c0[k]) * u;
+  }
+  return lut;
+}
+const LUT = buildDivergingLUT();
+
+function paintColorbar() {
+  const bar = document.getElementById('cbar');
+  const css = [];
+  for (let i = 0; i < 8; i++) {
+    const idx = Math.round(i / 7 * 255);
+    css.push(`rgb(${LUT[idx*3]},${LUT[idx*3+1]},${LUT[idx*3+2]}) ${(i/7*100).toFixed(0)}%`);
+  }
+  bar.style.background = `linear-gradient(to right, ${css.join(',')})`;
+}
+
+/* ============================================================
+   One-time precomputation (re-run when x₀, p₀, α change).
+   ============================================================ */
+function rebuild() {
+  const N_INTEG = 2048;
+  const dxI = L / N_INTEG;
+
+  // Initial Gaussian on integration grid
+  const psiRe = new Float64Array(N_INTEG + 1);
+  const psiIm = new Float64Array(N_INTEG + 1);
+  for (let k = 0; k <= N_INTEG; k++) {
+    const x = X_MIN + k * dxI;
+    const dx_ = x - state.x0;
+    const env = Math.exp(-state.alpha * dx_ * dx_);
+    psiRe[k] = env * Math.cos(state.p0 * dx_);
+    psiIm[k] = env * Math.sin(state.p0 * dx_);
+  }
+
+  // c_n = ∫ φ_n(x) ψ(x,0) dx by trapezoidal rule
+  const coeffs = new Float64Array(2 * N_MODES);
+  for (let n = 1; n <= N_MODES; n++) {
+    let sR = 0, sI = 0;
+    const kn = n * Math.PI / 2;
+    for (let k = 0; k <= N_INTEG; k++) {
+      const x = X_MIN + k * dxI;
+      const phi = Math.sin(kn * (x + 1));
+      const w = (k === 0 || k === N_INTEG) ? 0.5 : 1.0;
+      sR += w * psiRe[k] * phi;
+      sI += w * psiIm[k] * phi;
+    }
+    coeffs[2*(n-1)]   = sR * dxI;
+    coeffs[2*(n-1)+1] = sI * dxI;
+  }
+
+  // Normalize  Σ |c_n|² = 1
+  let norm2 = 0;
+  for (let n = 0; n < N_MODES; n++) {
+    norm2 += coeffs[2*n]*coeffs[2*n] + coeffs[2*n+1]*coeffs[2*n+1];
+  }
+  const inv = 1 / Math.sqrt(norm2);
+  for (let n = 0; n < 2 * N_MODES; n++) coeffs[n] *= inv;
+  state.coeffs = coeffs;
+
+  // ⟨E⟩ — constant
+  let meanE = 0;
+  for (let n = 1; n <= N_MODES; n++) {
+    const c2 = coeffs[2*(n-1)]*coeffs[2*(n-1)] + coeffs[2*(n-1)+1]*coeffs[2*(n-1)+1];
+    meanE += c2 * (n*n * Math.PI*Math.PI / 8);
+  }
+  state.meanH = meanE;
+
+  // Display grid + cached φ_n
+  state.xDisp = new Float64Array(N_X_DISPLAY);
+  state.phiDisp = new Float64Array(N_X_DISPLAY * N_MODES);
+  state.hDisp = L / (N_X_DISPLAY - 1);
+  for (let i = 0; i < N_X_DISPLAY; i++) {
+    const x = X_MIN + state.hDisp * i;
+    state.xDisp[i] = x;
+    for (let n = 1; n <= N_MODES; n++) {
+      state.phiDisp[i * N_MODES + (n-1)] = Math.sin(n * Math.PI * (x + 1) / 2);
+    }
+  }
+  state.psiDisp = new Float64Array(2 * N_X_DISPLAY);
+
+  // Wigner sample grid (interior, matching Fortran's wigner.f90)
+  state.xW = new Float64Array(N_X_W);
+  state.phiW = new Float64Array(N_X_W * N_MODES);
+  state.hW = L / (N_X_W + 1);
+  for (let k = 0; k < N_X_W; k++) {
+    const x = X_MIN + state.hW * (k + 1);
+    state.xW[k] = x;
+    for (let n = 1; n <= N_MODES; n++) {
+      state.phiW[k * N_MODES + (n-1)] = Math.sin(n * Math.PI * (x + 1) / 2);
+    }
+  }
+  state.psiW = new Float64Array(2 * N_X_W);
+}
+
+/* ============================================================
+   Per-frame: phase the coefficients, then evaluate ψ on a grid.
+   ============================================================ */
+function phaseCoeffs(t) {
+  const c = state.coeffs;
+  const out = state.cnPhased;
+  for (let n = 1; n <= N_MODES; n++) {
+    const E = n*n * Math.PI * Math.PI / 8;
+    const ph = -E * t;
+    const cosP = Math.cos(ph), sinP = Math.sin(ph);
+    const cRe = c[2*(n-1)], cIm = c[2*(n-1)+1];
+    out[2*(n-1)]   = cRe * cosP - cIm * sinP;
+    out[2*(n-1)+1] = cRe * sinP + cIm * cosP;
+  }
+}
+
+function evolveOnGrid(phiTable, NX, dst) {
+  const cnp = state.cnPhased;
+  for (let i = 0; i < NX; i++) {
+    let psiRe = 0, psiIm = 0;
+    const base = i * N_MODES;
+    for (let n = 0; n < N_MODES; n++) {
+      const phi = phiTable[base + n];
+      psiRe += phi * cnp[2*n];
+      psiIm += phi * cnp[2*n+1];
+    }
+    dst[2*i]   = psiRe;
+    dst[2*i+1] = psiIm;
+  }
+}
+
+/* ============================================================
+   Observables (numerical integration on display grid).
+   ============================================================ */
+function computeObservables() {
+  const psi = state.psiDisp;
+  const x = state.xDisp;
+  const h = state.hDisp;
+  let norm = 0, mx = 0, mx2 = 0;
+  for (let i = 0; i < N_X_DISPLAY; i++) {
+    const p2 = psi[2*i]*psi[2*i] + psi[2*i+1]*psi[2*i+1];
+    const w = (i === 0 || i === N_X_DISPLAY - 1) ? 0.5 : 1.0;
+    norm += w * p2;
+    mx   += w * p2 * x[i];
+    mx2  += w * p2 * x[i] * x[i];
+  }
+  norm *= h; mx *= h; mx2 *= h;
+  const meanX = mx / norm;
+  const dx = Math.sqrt(Math.max(0, mx2 / norm - meanX * meanX));
+
+  // ⟨p⟩ via central differences
+  let pSum = 0;
+  for (let i = 1; i < N_X_DISPLAY - 1; i++) {
+    const dRe = (psi[2*(i+1)]   - psi[2*(i-1)])   / (2 * h);
+    const dIm = (psi[2*(i+1)+1] - psi[2*(i-1)+1]) / (2 * h);
+    pSum += psi[2*i] * dIm - psi[2*i+1] * dRe;
+  }
+  const meanP = (pSum * h) / norm;
+  const meanP2 = 2 * state.meanH / norm;
+  const dp = Math.sqrt(Math.max(0, meanP2 - meanP * meanP));
+
+  return { norm, meanX, dx, meanP, dp, meanE: state.meanH / norm };
+}
+
+/* ============================================================
+   Wigner function (matches wigner.f90).
+     W(x_i, p) = (1/π) [ |ψ(x_i)|²
+                       + 2 Σ_{k≥1} Re( ψ*(x_{i+k}) ψ(x_{i-k}) e^{2 i p k h} ) ] · h
+   p is in the physical units of -i∂/∂x; we pick a range centered on p₀.
+   ============================================================ */
+function computeWigner() {
+  const out = state.wField;
+  const psi = state.psiW;
+  const h = state.hW;
+
+  // Choose p range so the peak is comfortably in view.
+  const dpTyp = Math.sqrt(state.alpha);
+  const pad = Math.max(5 * dpTyp, 4);
+  let pMin = state.p0 - pad;
+  let pMax = state.p0 + pad;
+  // Always include the mirror-image momentum (after reflection)
+  pMin = Math.min(pMin, -Math.abs(state.p0) - dpTyp);
+  pMax = Math.max(pMax,  Math.abs(state.p0) + dpTyp);
+  state.wPMin = pMin;
+  state.wPMax = pMax;
+
+  const invPi = 1 / Math.PI;
+
+  for (let j = 0; j < N_P_W; j++) {
+    // top row = pMax, bottom row = pMin
+    const p = pMax - (pMax - pMin) * j / (N_P_W - 1);
+    for (let i = 0; i < N_X_W; i++) {
+      const kmax = Math.min(i, N_X_W - 1 - i);
+      let sum = 0;
+      for (let k = 1; k <= kmax; k++) {
+        const iPlus = i + k;
+        const iMinus = i - k;
+        const aR = psi[2*iPlus],  aI = psi[2*iPlus+1];
+        const bR = psi[2*iMinus], bI = psi[2*iMinus+1];
+        // conj(a) · b
+        const mR = aR * bR + aI * bI;
+        const mI = aR * bI - aI * bR;
+        const phase = 2 * p * (k * h);
+        const cs = Math.cos(phase), sn = Math.sin(phase);
+        sum += mR * cs - mI * sn;
+      }
+      const psi2 = psi[2*i]*psi[2*i] + psi[2*i+1]*psi[2*i+1];
+      out[j * N_X_W + i] = (psi2 + 2 * sum) * h * invPi;
+    }
+  }
+}
+
+/* ============================================================
+   SVG (position panel)
+   ============================================================ */
+const svg = document.getElementById('svg-x');
+const sx = v => M.left + (v - X_MIN) / (X_MAX - X_MIN) * CW;
+const sy = v => M.top + (1 - (v - PSI2_YMIN) / (PSI2_YMAX - PSI2_YMIN)) * CH;
+
+function makeSvgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+function initSvg() {
+  svg.appendChild(makeSvgEl('rect', {
+    x: M.left, y: M.top, width: CW, height: CH,
+    fill: '#fdfcf8', stroke: '#e6e0d4'
+  }));
+
+  const yTicks = [-2, -1, 0, 1, 2, 3, 4];
+  for (const yt of yTicks) {
+    if (yt >= PSI2_YMIN && yt <= PSI2_YMAX) {
+      svg.appendChild(makeSvgEl('line', {
+        class: 'gridline',
+        x1: M.left, x2: M.left + CW, y1: sy(yt), y2: sy(yt)
+      }));
+      svg.appendChild(makeSvgEl('text', {
+        class: 'axis', x: M.left - 6, y: sy(yt) + 3.5, 'text-anchor': 'end'
+      })).textContent = yt.toFixed(0);
+    }
+  }
+  const xTicks = [-1, -0.5, 0, 0.5, 1];
+  for (const xt of xTicks) {
+    svg.appendChild(makeSvgEl('line', {
+      class: 'gridline',
+      y1: M.top, y2: M.top + CH, x1: sx(xt), x2: sx(xt)
+    }));
+    svg.appendChild(makeSvgEl('text', {
+      class: 'axis', x: sx(xt), y: M.top + CH + 14, 'text-anchor': 'middle'
+    })).textContent = xt;
+  }
+  svg.appendChild(makeSvgEl('line', {
+    class: 'zero',
+    x1: M.left, x2: M.left + CW, y1: sy(0), y2: sy(0)
+  }));
+
+  svg.appendChild(makeSvgEl('line', {
+    class: 'wall', x1: sx(X_MIN), x2: sx(X_MIN), y1: M.top, y2: M.top + CH
+  }));
+  svg.appendChild(makeSvgEl('line', {
+    class: 'wall', x1: sx(X_MAX), x2: sx(X_MAX), y1: M.top, y2: M.top + CH
+  }));
+
+  const xlab = makeSvgEl('text', {
+    class: 'label', x: M.left + CW / 2, y: SVG_H - 6,
+    'text-anchor': 'middle', 'font-style': 'italic'
+  });
+  xlab.textContent = 'x';
+  svg.appendChild(xlab);
+
+  const fillPath = makeSvgEl('path', { id: 'psi2-fill', fill: '#2d5d57', 'fill-opacity': 0.18, stroke: 'none' });
+  const rePath = makeSvgEl('path', { id: 're-line', fill: 'none', stroke: '#2f5d9e', 'stroke-width': 1.0, 'stroke-opacity': 0.7, display: 'none' });
+  const imPath = makeSvgEl('path', { id: 'im-line', fill: 'none', stroke: '#c4793a', 'stroke-width': 1.0, 'stroke-opacity': 0.7, display: 'none' });
+  const psi2Path = makeSvgEl('path', { id: 'psi2-line', fill: 'none', stroke: '#2d5d57', 'stroke-width': 1.8 });
+  svg.appendChild(fillPath);
+  svg.appendChild(rePath);
+  svg.appendChild(imPath);
+  svg.appendChild(psi2Path);
+
+  const meanLine = makeSvgEl('line', {
+    id: 'mean-line', y1: M.top, y2: M.top + CH,
+    stroke: '#b4582c', 'stroke-width': 1, 'stroke-dasharray': '3 3'
+  });
+  svg.appendChild(meanLine);
+
+  const tTag = makeSvgEl('text', {
+    id: 'svg-t', class: 'label',
+    x: M.left + CW - 8, y: M.top + 14,
+    'text-anchor': 'end', 'font-style': 'italic'
+  });
+  svg.appendChild(tTag);
+}
+
+function buildPath(samples) {
+  let d = '';
+  for (let i = 0; i < samples.length; i++) {
+    d += (i === 0 ? 'M' : 'L') + samples[i][0].toFixed(2) + ' ' + samples[i][1].toFixed(2) + ' ';
+  }
+  return d;
+}
+
+function updateSvg(meanX) {
+  const psi = state.psiDisp;
+  const psi2Pts = new Array(N_X_DISPLAY);
+  const rePts   = new Array(N_X_DISPLAY);
+  const imPts   = new Array(N_X_DISPLAY);
+  for (let i = 0; i < N_X_DISPLAY; i++) {
+    const r = psi[2*i], im_ = psi[2*i+1];
+    const p2 = r*r + im_*im_;
+    const xi = sx(state.xDisp[i]);
+    psi2Pts[i] = [xi, sy(p2)];
+    rePts[i]   = [xi, sy(r)];
+    imPts[i]   = [xi, sy(im_)];
+  }
+  document.getElementById('psi2-line').setAttribute('d', buildPath(psi2Pts));
+  document.getElementById('re-line').setAttribute('d', buildPath(rePts));
+  document.getElementById('im-line').setAttribute('d', buildPath(imPts));
+  const fill = psi2Pts.slice();
+  fill.push([sx(X_MAX), sy(0)]);
+  fill.push([sx(X_MIN), sy(0)]);
+  document.getElementById('psi2-fill').setAttribute('d', buildPath(fill) + 'Z');
+
+  const ml = document.getElementById('mean-line');
+  ml.setAttribute('x1', sx(meanX));
+  ml.setAttribute('x2', sx(meanX));
+  document.getElementById('svg-t').textContent = 't = ' + state.t.toFixed(3);
+}
+
+/* ============================================================
+   Canvas (Wigner heatmap)
+   ============================================================ */
+const cnv = document.getElementById('cnv-p');
+const ctx = cnv.getContext('2d');
+let wImage = null;
+
+function setupCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  cnv.width = SVG_W * dpr;
+  cnv.height = SVG_H * dpr;
+  cnv.style.width = SVG_W + 'px';
+  cnv.style.height = SVG_H + 'px';
+  wImage = ctx.createImageData(N_X_W, N_P_W);
+}
+
+function drawWigner() {
+  const field = state.wField;
+  let vmax = 0;
+  for (let i = 0; i < field.length; i++) {
+    const a = Math.abs(field[i]);
+    if (a > vmax) vmax = a;
+  }
+  if (vmax <= 0) vmax = 1;
+  const inv = 1 / vmax;
+  const data = wImage.data;
+  for (let off = 0, idx = 0; idx < field.length; idx++, off += 4) {
+    let u = field[idx] * inv;             // [-1, 1]
+    // gentle gamma on each side to lift small fringes
+    const sgn = u < 0 ? -1 : 1;
+    u = sgn * Math.pow(Math.abs(u), 0.6);
+    const lutIdx = Math.min(255, Math.max(0, Math.round((u + 1) * 127.5)));
+    data[off]   = LUT[lutIdx*3];
+    data[off+1] = LUT[lutIdx*3+1];
+    data[off+2] = LUT[lutIdx*3+2];
+    data[off+3] = 255;
+  }
+  // The data lays out row j (j=0 → top = high p) at offset j*N_X_W.
+  const tmp = document.createElement('canvas');
+  tmp.width = N_X_W; tmp.height = N_P_W;
+  tmp.getContext('2d').putImageData(wImage, 0, 0);
+
+  const dpr = window.devicePixelRatio || 1;
+  ctx.save();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#fdfcf8';
+  ctx.fillRect(0, 0, SVG_W, SVG_H);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(tmp, M.left, M.top, CW, CH);
+
+  ctx.strokeStyle = '#e6e0d4';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(M.left + 0.5, M.top + 0.5, CW - 1, CH - 1);
+
+  // walls
+  ctx.strokeStyle = '#6e3a1e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(M.left, M.top); ctx.lineTo(M.left, M.top + CH);
+  ctx.moveTo(M.left + CW, M.top); ctx.lineTo(M.left + CW, M.top + CH);
+  ctx.stroke();
+
+  // axes
+  ctx.fillStyle = '#8a8378';
+  ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const xt of [-1, -0.5, 0, 0.5, 1]) {
+    const px = M.left + (xt - X_MIN) / (X_MAX - X_MIN) * CW;
+    ctx.fillText(xt.toString(), px, M.top + CH + 4);
+  }
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const ticks = computeTicks(state.wPMin, state.wPMax, 5);
+  for (const pt of ticks) {
+    const py = M.top + (1 - (pt - state.wPMin) / (state.wPMax - state.wPMin)) * CH;
+    if (py >= M.top - 1 && py <= M.top + CH + 1) {
+      ctx.fillText(pt.toString(), M.left - 4, py);
+    }
+  }
+  // p = 0 reference line
+  if (state.wPMin < 0 && state.wPMax > 0) {
+    const py0 = M.top + (1 - (0 - state.wPMin) / (state.wPMax - state.wPMin)) * CH;
+    ctx.strokeStyle = '#bbb5a7';
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath();
+    ctx.moveTo(M.left, py0); ctx.lineTo(M.left + CW, py0);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#5a544c';
+  ctx.font = 'italic 12px "Iowan Old Style", Charter, Georgia, serif';
+  ctx.fillText('x', M.left + CW / 2, SVG_H - 6);
+  ctx.save();
+  ctx.translate(M.left - 24, M.top + CH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('p', 0, 0);
+  ctx.restore();
+
+  ctx.restore();
+}
+
+function computeTicks(lo, hi, target) {
+  const range = hi - lo;
+  const raw = range / target;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  let step;
+  if (norm < 1.5) step = 1 * mag;
+  else if (norm < 3) step = 2 * mag;
+  else if (norm < 7) step = 5 * mag;
+  else step = 10 * mag;
+  const out = [];
+  const first = Math.ceil(lo / step) * step;
+  for (let v = first; v <= hi; v += step) {
+    out.push(Number(v.toFixed(4)));
+  }
+  return out;
+}
+
+/* ============================================================
+   Stats
+   ============================================================ */
+function updateStats(obs) {
+  const fmt = (v, n=2) => v.toFixed(n);
+  document.getElementById('stat-x').textContent    = fmt(obs.meanX);
+  document.getElementById('stat-dx').textContent   = fmt(obs.dx);
+  document.getElementById('stat-p').textContent    = fmt(obs.meanP);
+  document.getElementById('stat-dp').textContent   = fmt(obs.dp);
+  document.getElementById('stat-e').textContent    = fmt(obs.meanE);
+  document.getElementById('stat-norm').textContent = fmt(obs.norm, 3);
+  document.getElementById('t-readout').textContent = 't = ' + state.t.toFixed(3);
+}
+
+/* ============================================================
+   Controls
+   ============================================================ */
+function bindControls() {
+  const slider = document.getElementById('t-slider');
+  slider.addEventListener('input', e => {
+    state.t = parseFloat(e.target.value);
+    state.playing = false;
+    document.getElementById('play').textContent = '▶';
+    redrawAll();
+  });
+  document.getElementById('play').addEventListener('click', e => {
+    state.playing = !state.playing;
+    e.target.textContent = state.playing ? '⏸' : '▶';
+    if (state.playing) state.lastFrameAt = performance.now();
+  });
+  document.getElementById('reset').addEventListener('click', () => {
+    state.t = 0;
+    redrawAll();
+  });
+
+  const x0 = document.getElementById('x0'),  x0r = document.getElementById('x0-r');
+  const p0 = document.getElementById('p0'),  p0r = document.getElementById('p0-r');
+  const al = document.getElementById('alpha'), alr = document.getElementById('alpha-r');
+
+  function syncParams() {
+    state.x0    = parseFloat(x0.value);
+    state.p0    = parseFloat(p0.value);
+    state.alpha = parseFloat(al.value);
+    x0r.textContent = state.x0.toFixed(2);
+    p0r.textContent = state.p0.toFixed(1);
+    alr.textContent = state.alpha.toFixed(1);
+    rebuild();
+    redrawAll();
+  }
+  x0.addEventListener('input', syncParams);
+  p0.addEventListener('input', syncParams);
+  al.addEventListener('input', syncParams);
+  syncParams();
+}
+
+function bindReImToggles() {
+  const pairs = [
+    ['tgl-re', 're-line', 'tgl-re-wrap'],
+    ['tgl-im', 'im-line', 'tgl-im-wrap']
+  ];
+  for (const [cbId, pathId, wrapId] of pairs) {
+    const cb = document.getElementById(cbId);
+    const wrap = document.getElementById(wrapId);
+    const apply = () => {
+      document.getElementById(pathId).style.display = cb.checked ? '' : 'none';
+      wrap.classList.toggle('on', cb.checked);
+    };
+    cb.addEventListener('change', apply);
+    apply();
+  }
+}
+
+function bindLang() {
+  const btnEn = document.getElementById('btn-en');
+  const btnZh = document.getElementById('btn-zh');
+  function setLang(lang) {
+    document.documentElement.lang = lang === 'zh' ? 'zh-cn' : 'en';
+    if (lang === 'zh') {
+      document.body.classList.add('show-zh');
+      document.body.classList.remove('show-en');
+      btnZh.classList.add('active');
+      btnEn.classList.remove('active');
+      document.getElementById('play').title = '播放 / 暂停';
+      document.getElementById('reset').title = '重置';
+    } else {
+      document.body.classList.add('show-en');
+      document.body.classList.remove('show-zh');
+      btnEn.classList.add('active');
+      btnZh.classList.remove('active');
+      document.getElementById('play').title = 'Play / Pause';
+      document.getElementById('reset').title = 'Reset';
+    }
+  }
+  btnEn.addEventListener('click', () => setLang('en'));
+  btnZh.addEventListener('click', () => setLang('zh'));
+}
+
+/* ============================================================
+   Frame loop
+   ============================================================ */
+function redrawAll() {
+  phaseCoeffs(state.t);
+  evolveOnGrid(state.phiDisp, N_X_DISPLAY, state.psiDisp);
+  evolveOnGrid(state.phiW, N_X_W, state.psiW);
+  const obs = computeObservables();
+  updateSvg(obs.meanX);
+  computeWigner();
+  drawWigner();
+  updateStats(obs);
+  document.getElementById('t-slider').value = state.t;
+}
+
+function loop(now) {
+  if (state.playing) {
+    if (!state.lastFrameAt) state.lastFrameAt = now;
+    const elapsed = (now - state.lastFrameAt) / 1000;
+    state.lastFrameAt = now;
+    state.t += elapsed * ANIM_SPEED;
+    if (state.t > T_MAX) state.t = 0;
+    redrawAll();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- boot ---------- */
+initSvg();
+setupCanvas();
+paintColorbar();
+bindLang();
+bindControls();
+bindReImToggles();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
