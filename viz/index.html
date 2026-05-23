@@ -303,6 +303,23 @@
     margin-right: 5px;
     border-radius: 1px;
   }
+  .legend label.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: background 0.15s;
+  }
+  .legend label.toggle:hover { background: var(--rule-soft); }
+  .legend label.toggle input[type=checkbox] {
+    margin: 0;
+    accent-color: var(--ink-soft);
+  }
+  .legend label.toggle:not(.on) { opacity: 0.55; text-decoration: line-through; }
+  .legend label.toggle:not(.on) .sw { opacity: 0.35; }
 </style>
 </head>
 <body class="show-en">
@@ -339,8 +356,14 @@
         <span class="t-en">|ψ|² · probability density</span>
         <span class="t-zh">|ψ|² · 概率密度</span>
       </span>
-      <span><span class="sw" style="background:#2f5d9e"></span>Re(ψ)</span>
-      <span><span class="sw" style="background:#c4793a"></span>Im(ψ)</span>
+      <label class="toggle" id="tgl-re-wrap">
+        <input type="checkbox" id="tgl-re">
+        <span class="sw" style="background:#2f5d9e"></span>Re(ψ)
+      </label>
+      <label class="toggle" id="tgl-im-wrap">
+        <input type="checkbox" id="tgl-im">
+        <span class="sw" style="background:#c4793a"></span>Im(ψ)
+      </label>
       <span><span class="sw" style="background:#6e3a1e;height:3px"></span>
         <span class="t-en">walls</span><span class="t-zh">硬墙</span>
       </span>
@@ -805,8 +828,8 @@ function initSvg() {
   svg.appendChild(xlab);
 
   const fillPath = makeSvgEl('path', { id: 'psi2-fill', fill: '#2d5d57', 'fill-opacity': 0.18, stroke: 'none' });
-  const rePath = makeSvgEl('path', { id: 're-line', fill: 'none', stroke: '#2f5d9e', 'stroke-width': 1.0, 'stroke-opacity': 0.7 });
-  const imPath = makeSvgEl('path', { id: 'im-line', fill: 'none', stroke: '#c4793a', 'stroke-width': 1.0, 'stroke-opacity': 0.7 });
+  const rePath = makeSvgEl('path', { id: 're-line', fill: 'none', stroke: '#2f5d9e', 'stroke-width': 1.0, 'stroke-opacity': 0.7, display: 'none' });
+  const imPath = makeSvgEl('path', { id: 'im-line', fill: 'none', stroke: '#c4793a', 'stroke-width': 1.0, 'stroke-opacity': 0.7, display: 'none' });
   const psi2Path = makeSvgEl('path', { id: 'psi2-line', fill: 'none', stroke: '#2d5d57', 'stroke-width': 1.8 });
   svg.appendChild(fillPath);
   svg.appendChild(rePath);
@@ -1038,6 +1061,23 @@ function bindControls() {
   syncParams();
 }
 
+function bindReImToggles() {
+  const pairs = [
+    ['tgl-re', 're-line', 'tgl-re-wrap'],
+    ['tgl-im', 'im-line', 'tgl-im-wrap']
+  ];
+  for (const [cbId, pathId, wrapId] of pairs) {
+    const cb = document.getElementById(cbId);
+    const wrap = document.getElementById(wrapId);
+    const apply = () => {
+      document.getElementById(pathId).style.display = cb.checked ? '' : 'none';
+      wrap.classList.toggle('on', cb.checked);
+    };
+    cb.addEventListener('change', apply);
+    apply();
+  }
+}
+
 function bindLang() {
   const btnEn = document.getElementById('btn-en');
   const btnZh = document.getElementById('btn-zh');
@@ -1096,6 +1136,7 @@ setupCanvas();
 paintColorbar();
 bindLang();
 bindControls();
+bindReImToggles();
 requestAnimationFrame(loop);
 </script>
 </body>
