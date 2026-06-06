@@ -45,7 +45,7 @@ case $REPR in
 	gnuplot -e "set xrange[-1:1]; set yrange[-0.1:2]; set term
 	png size 1600,1200; plot '$TMPFILE' using 1:(\$2*\$2+\$3*\$3) t
 'Psi^2' w l lt 1 lc rgb 'red'" ;;
-    "wigner")
+    "wigner"|"sb")
 	gnuplot -e "set yrange [-1:1]; set xrange [-1:1]; set zrange [-2:2]; set term png size
 	1600,1200; set xlabel 'p'; set ylabel 'x'; set contour both; set
 grid; set pm3d border linewidth 0.2; set cbrange [-2:2]; splot '$TMPFILE' nonuniform matrix notitle with pm3d" ;;
@@ -58,4 +58,4 @@ grid; set pm3d border linewidth 0.2; set cbrange [-2:2]; splot '$TMPFILE' nonuni
 	exit 1 ;;
 esac
 rm $TMPFILE
-# seq $NTSTEPS | parallel --joblog=gpar.log -k 'render --ntsteps=1 -n=100 --tau={}*$TAU' | ffmeg -f image2 -r 10.0 -y -f png_pipe -s:v 800:600 -i pipe: movie.mp4
+#seq $NTSTEPS | parallel --joblog=gpar.log -k 'render --ntsteps=1 -n=100 --tau={}*$TAU' | ffmpeg -f image2 -r 10.0 -y -f png_pipe -s:v 800:600 -i pipe: movie.mp4
