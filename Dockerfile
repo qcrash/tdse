@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y intel-oneapi-mkl-devel \
     && rm -rf /var/lib/apt/lists/*
 #
 FROM base AS toolchains-arm64
-RUN curl -O https://developer.arm.com/-/cdn-downloads/permalink/Arm-Performance-Libraries/Version_25.07/arm-performance-libraries_25.07_deb_gcc.tar
-RUN tar xf arm-performance-libraries_25.07_deb_gcc.tar
-RUN ./arm-performance-libraries_25.07_deb/arm-performance-libraries_25.07_deb.sh --accept
+RUN curl -O https://developer.arm.com/-/cdn-downloads/permalink/Arm-Performance-Libraries/Version_26.01/arm-performance-libraries_26.01_deb_gcc.tar
+RUN tar xf arm-performance-libraries_26.01_deb_gcc.tar
+RUN ./arm-performance-libraries_26.01_deb/arm-performance-libraries_26.01_deb.sh --accept
 RUN curl "https://developer.arm.com/packages/arm-toolchains%3Aubuntu-24/noble/Release.key" |  tee /etc/apt/trusted.gpg.d/developer-arm-com.asc
 RUN echo "deb https://developer.arm.com/packages/arm-toolchains%3Aubuntu-24/noble/ ./"  | tee /etc/apt/sources.list.d/developer-arm-com.list
 RUN apt-get update && apt-get install -y arm-performance-libraries environment-modules \

@@ -97,7 +97,8 @@ subroutine getcli(n, ntsteps, idebug, tau, x0, p0, t0, alpha, mode, output, repr
         call gethelp()
         stop
      else
-        print '(a)', "Unrecognized command line argument. Use -h/--help for supported options."
+        print '(a)', "Unrecognized command line argument. Use -h/--help&
+             & for supported options."
         stop
      end if
      ix = ix + 1
