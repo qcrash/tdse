@@ -23,6 +23,7 @@ while :; do
             set -xv ;;
 	-r|--representation)
 	    REPR="$2"
+	    TDSEOPTS+="$1 $2 "
 	    shift ;;
         -n|--gridpoints|-a|--alpha|-x|--initialposition|-p|--initialmomentum|-t|--initialtime)
 	    TDSEOPTS+="$1 $2 "
@@ -39,7 +40,7 @@ while :; do
 done
 TDSEOPTS+="--ntsteps 1 --mode exact --tau=$1"
 #
-tdse $TDSEOPTS | sed '1,/ #/{/ #/!d}' >$TMPFILE
+tdse $TDSEOPTS | tail -n +2 >$TMPFILE
 case $REPR in
     "psisq")
 	gnuplot -e "set xrange[-1:1]; set yrange[-0.1:2]; set term
